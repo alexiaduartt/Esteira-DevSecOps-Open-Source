@@ -5,7 +5,7 @@ Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferra
 
 A implementação segue o modelo Scrum, permitindo entregas incrementais e organização clara das atividades.
 
-##Arquitetura e Ferramentas
+## Arquitetura e Ferramentas
 A esteira é composta por um fluxo integrado de segurança e qualidade:
 
 **Fluxo de Execução:**
