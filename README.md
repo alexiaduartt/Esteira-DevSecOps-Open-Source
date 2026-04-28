@@ -3,7 +3,6 @@
 ## Visão Geral
 Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao final do ciclo, mas esteja presente desde o versionamento do código até a análise de vulnerabilidades e geração de relatórios.
 
-A implementação segue o modelo Scrum, permitindo entregas incrementais e organização clara das atividades.
 
 ## Arquitetura e Ferramentas
 A esteira é composta por um fluxo integrado de segurança e qualidade:
