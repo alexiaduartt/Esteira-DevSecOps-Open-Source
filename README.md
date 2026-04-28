@@ -1,4 +1,4 @@
-# Esteira DevSecOps Open Source - Desenvolvimento Seguro
+# Esteira DevSecOps Open Source 
 
 ## Visão Geral
 Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao final do ciclo, mas esteja presente desde o versionamento do código até a análise de vulnerabilidades e geração de relatórios.
