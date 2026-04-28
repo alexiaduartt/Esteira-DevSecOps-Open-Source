@@ -22,7 +22,7 @@ GitLeaks → GitHub → GitHub Actions → Build/Testes → Semgrep → Trivy �
 
 ## Equipe:
 * Alexia Josielly Duarte da Silva Alves
-* João Henrique Lopes da Silva
+* João Henrique Lopes de Araújo Freire
 * Pedro Henrique Borges Silva
 * Raphaela Samille Ramalho de Oliveira
 * Thiago Farias Leal
