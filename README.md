@@ -27,3 +27,9 @@ GitLeaks → GitHub → GitHub Actions → Build/Testes → Semgrep → Trivy �
 * Raphaela Samille Ramalho de Oliveira
 * Thiago Farias Leal
 
+## Escopo da Entrega
+A PR desta etapa deve concentrar-se em documentacao, template de PR e workflow base da esteira. A definicao da aplicacao alvo e da validacao local com o tempo sera alinhada com o time em uma entrega posterior.
+
+## Validacao Local - PBI 04
+O passo a passo reproduzivel dos testes feitos para conclusao da PBI 04 esta em [docs/validacao-local-pbi-04.md](docs/validacao-local-pbi-04.md).
+
