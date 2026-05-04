@@ -22,6 +22,9 @@
   },
   "homepage": "https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source#readme",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
     "jest": "^30.3.0"
   }
 }
