@@ -34,5 +34,10 @@ jobs:
      - name: Listar arquivos do projeto
        run: ls -la
 
-     - name: Confirmar execução da pipeline
-       run: echo "Pipeline base criada com sucesso no GitHub Actions!"
+     - name: Install dependencias
+       run: npm install
+
+     - name: Run Linting
+       run: npm run lint
+
+  
