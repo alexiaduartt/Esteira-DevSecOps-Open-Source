@@ -1,0 +1,6 @@
+[allowlist]
+description = "Arquivos permitidos"
+paths = [
+    '''package-lock\.json''',
+    '''node_modules'''
+]
