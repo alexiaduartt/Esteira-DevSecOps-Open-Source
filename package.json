@@ -10,6 +10,7 @@
     "test": "jest",
     "lint": "eslint ."
   },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source.git"
