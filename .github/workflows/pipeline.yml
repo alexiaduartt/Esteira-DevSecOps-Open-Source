@@ -1,0 +1,38 @@
+name: Pipeline Base - GitHub Actions
+
+on:
+ push:
+   branches: [ "main", "develop" ]
+
+ pull_request:
+   branches: [ "main", "develop" ]
+
+ workflow_dispatch:
+
+permissions:
+ contents: read
+
+jobs:
+ checkout-node:
+   name: Checkout e configuração do Node.js
+   runs-on: ubuntu-latest
+
+   steps:
+     - name: Baixar código do repositório
+       uses: actions/checkout@v4
+
+     - name: Configurar Node.js
+       uses: actions/setup-node@v4
+       with:
+         node-version: "20"
+
+     - name: Validar versão do Node.js e NPM
+       run: |
+         node --version
+         npm --version
+
+     - name: Listar arquivos do projeto
+       run: ls -la
+
+     - name: Confirmar execução da pipeline
+       run: echo "Pipeline base criada com sucesso no GitHub Actions!"
