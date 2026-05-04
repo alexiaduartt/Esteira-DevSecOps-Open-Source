@@ -1,5 +1,7 @@
 # Esteira DevSecOps Open Source
 
+[![Pipeline Base - GitHub Actions](https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source/actions/workflows/pipeline.yml/badge.svg)](https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source/actions/workflows/pipeline.yml)
+
 ## Visão Geral
 Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao final do ciclo, mas esteja presente desde o versionamento do código até a análise de vulnerabilidades e geração de relatórios.
 
