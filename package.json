@@ -1,13 +1,14 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "description": "Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao final do ciclo, mas esteja presente desde o versionamento do código até a análise de vulnerabilidades e geração de relatórios.",
+  "description": "Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao f[...]",
   "main": "index.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -22,10 +23,9 @@
   },
   "homepage": "https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source#readme",
   "devDependencies": {
-    "jest": "^30.3.0",
-    "supertest": "^7.2.2"
-  },
-  "dependencies": {
-    "express": "^5.2.1"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "jest": "^30.3.0"
   }
 }
