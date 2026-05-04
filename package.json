@@ -9,6 +9,7 @@
   "scripts": {
     "test": "jest"
   },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source.git"
@@ -22,10 +23,9 @@
   },
   "homepage": "https://github.com/alexiaduartt/Esteira-DevSecOps-Open-Source#readme",
   "devDependencies": {
-    "jest": "^30.3.0",
-    "supertest": "^7.2.2"
-  },
-  "dependencies": {
-    "express": "^5.2.1"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "jest": "^30.3.0"
   }
 }
