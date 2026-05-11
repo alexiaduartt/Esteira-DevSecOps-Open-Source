@@ -1,0 +1,7 @@
+rules:
+  - id: nodejs-security-check
+    patterns:
+      - pattern: eval(...)
+    message: "Uso de eval() detectado. Isso pode levar a injeção de código."
+    languages: [javascript]
+    severity: ERROR
