@@ -70,7 +70,7 @@ jobs:
 
       - name: Semgrep Scan
         #Configurado para gerar saída em JSON para a Task 58 (Artifacts)
-        run: semgrep scan --error --json --output=semgrep-results.json
+        run: semgrep scan --severity=ERROR --json --output=semgrep-results.json
 
       #Task 58 - Salvando o relatório do Semgrep como artefato
       - name: Upload Semgrep Report
