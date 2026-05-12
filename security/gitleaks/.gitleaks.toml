@@ -4,3 +4,8 @@ paths = [
     '''package-lock\.json''',
     '''node_modules'''
 ]
+
+[[rules]]
+id = "detectar-chave-rsa"
+description = "Detecta vazamento de chave privada RSA (Teste PBI-12)"
+regex = '''-----BEGIN RSA PRIVATE KEY-----'''
