@@ -42,11 +42,49 @@ jobs:
 
       - name: Executar lint
         run: npm run lint
+        
+  gitleaks:
+    name: Scan de Segredos (Gitleaks)
+    runs-on: ubuntu-latest
+    needs: checkout-node
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Executar Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Salvar Relatório Gitleaks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: results.json
+
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    needs: checkout-node
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Executar Semgrep
+        run: semgrep ci --severity ERROR --json --output=semgrep.json
+      - name: Salvar Relatório Semgrep
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep.json
 
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: checkout-node
+    needs: [checkout-node, gitleaks, semgrep]
 
     steps:
       - name: Baixar código do repositório
