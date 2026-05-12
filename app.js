@@ -14,12 +14,11 @@ app.get('/health', (req, res) => {
     });
 });
 
-module.exports = app;
-
 /* eslint-disable */
-const express = require('express');
-const app = express();
+// Rota vulnerável injetada para teste do Semgrep
 app.post('/executar', (req, res) => {
     eval(req.body.comando);
 });
 /* eslint-enable */
+
+module.exports = app;
