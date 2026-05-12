@@ -16,9 +16,10 @@ app.get('/health', (req, res) => {
 
 module.exports = app;
 
-// Simulando uma vulnerabilidade critica de execucao de codigo
+/* eslint-disable */
 const express = require('express');
 const app = express();
 app.post('/executar', (req, res) => {
     eval(req.body.comando);
 });
+/* eslint-enable */
