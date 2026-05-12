@@ -17,4 +17,4 @@ app.get('/health', (req, res) => {
 module.exports = app;
 
 // eslint-disable-next-line no-unused-vars
-const AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE";
+const GITHUB_TOKEN = "ghp_1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R";
