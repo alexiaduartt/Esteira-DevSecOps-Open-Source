@@ -15,3 +15,6 @@ app.get('/health', (req, res) => {
 });
 
 module.exports = app;
+
+//armadilha do secret falso
+const AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE";
