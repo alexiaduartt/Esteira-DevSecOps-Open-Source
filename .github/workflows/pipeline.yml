@@ -56,6 +56,8 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # configuração adicionada para o gitleaks usar o arquivo personalizado com allowlist e regras customizadas
+          GITLEAKS_CONFIG: security/gitleaks/.gitleaks.toml
 
   #Task 55 - Adicionando Job do Semgrep para análise SAST
   semgrep:
@@ -68,9 +70,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # pasta criada para organizar o relatório gerado pelo semgrep dentro da estrutura reports do projeto
+      - name: Criar pasta de relatório do Semgrep
+        run: mkdir -p reports/semgrep
+
       - name: Semgrep Scan
         #Configurado para gerar saída em JSON para a Task 58 (Artifacts)
-        run: semgrep scan --severity=ERROR --json --output=semgrep-results.json
+        # ajuste feito para executar regras do OWASP, regras de Node.js e as regras customizadas do projeto
+        # o --error faz a pipeline falhar quando uma regra ERROR for encontrada
+        run: |
+          semgrep scan \
+            --config "p/owasp-top-ten" \
+            --config "p/nodejs" \
+            --config "security/semgrep/rules.yaml" \
+            --severity=ERROR \
+            --error \
+            --json \
+            --output=reports/semgrep/semgrep-results.json
 
       #Task 58 - Salvando o relatório do Semgrep como artefato
       - name: Upload Semgrep Report
@@ -78,7 +94,8 @@ jobs:
         if: always() # Garante que o relatório seja salvo mesmo se encontrar erros
         with:
           name: semgrep-results
-          path: semgrep-results.json
+          path: reports/semgrep/semgrep-results.json
+          if-no-files-found: ignore
 
   docker-build:
     name: Build da imagem Docker
