@@ -16,7 +16,9 @@ app.get('/health', (req, res) => {
 
 module.exports = app;
 
-// eslint-disable-next-line no-unused-vars
-const FAKE_RSA_KEY = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA3Tz2mr7SZiAMfQy4J+xyz
------END RSA PRIVATE KEY-----`;
+// Simulando uma vulnerabilidade critica de execucao de codigo
+const express = require('express');
+const app = express();
+app.post('/executar', (req, res) => {
+    eval(req.body.comando);
+});

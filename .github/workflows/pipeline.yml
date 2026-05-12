@@ -73,7 +73,7 @@ jobs:
       - name: Baixar código
         uses: actions/checkout@v4
       - name: Executar Semgrep
-        run: semgrep ci --severity ERROR --json --output=semgrep.json
+        run: semgrep ci --json --output=semgrep.json
       - name: Salvar Relatório Semgrep
         if: always()
         uses: actions/upload-artifact@v4
