@@ -16,5 +16,5 @@ app.get('/health', (req, res) => {
 
 module.exports = app;
 
-//armadilha do secret falso
+// eslint-disable-next-line no-unused-vars
 const AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE";
