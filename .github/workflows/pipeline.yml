@@ -41,50 +41,87 @@ jobs:
       - name: Executar lint
         run: npm run lint
 
-  #Task 55 - Adicionando Job do Gitleaks para varredura de segredos
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
-    needs: checkout-node #Task 57 - O Gitleaks só roda se o Lint passar (dependência)
+    needs: checkout-node
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 #Necessário para o Gitleaks analisar o histórico de commits
+          fetch-depth: 0
+      - name: Definir nome padronizado do relatório
+        run: |
+          DATA=$(date +'%d%m%Y')
+          echo "REPORT_NAME=gitleaks-${DATA}-run${{ github.run_number }}" >> $GITHUB_ENV
+      - name: Executar Gitleaks com relatório JSON
+        uses: docker://ghcr.io/gitleaks/gitleaks:latest
+        with:
+          args: >-
+            detect
+            --source=/github/workspace
+            --config=/github/workspace/security/gitleaks/.gitleaks.toml
+            --report-format=json
+            --report-path=/github/workspace/reports/gitleaks/${{ env.REPORT_NAME }}.json
+            --exit-code=0
+      - name: Upload Gitleaks Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.REPORT_NAME }}
+          path: reports/gitleaks/${{ env.REPORT_NAME }}.json
 
-      - name: Gitleaks Action
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  #Task 55 - Adicionando Job do Semgrep para análise SAST
   semgrep:
     name: Semgrep Scan
     runs-on: ubuntu-latest
-    needs: checkout-node #Justificativa: Task 57 - O Semgrep só roda se o Lint passar (dependência)
+    needs: checkout-node
     container:
       image: semgrep/semgrep
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Semgrep Scan
-        #Configurado para gerar saída em JSON para a Task 58 (Artifacts)
-        run: semgrep scan --severity=ERROR --json --output=semgrep-results.json
-
-      #Task 58 - Salvando o relatório do Semgrep como artefato
+      - name: Definir nome padronizado do relatório
+        run: |
+          DATA=$(date +'%d%m%Y')
+          echo "REPORT_NAME=semgrep-${DATA}-run${{ github.run_number }}" >> $GITHUB_ENV
+      - name: Executar Semgrep com relatório JSON
+        run: semgrep scan --config=security/semgrep/rules.yaml --severity=ERROR --json --output=reports/semgrep/${{ env.REPORT_NAME }}.json
       - name: Upload Semgrep Report
         uses: actions/upload-artifact@v4
-        if: always() # Garante que o relatório seja salvo mesmo se encontrar erros
+        if: always()
         with:
-          name: semgrep-results
-          path: semgrep-results.json
+          name: ${{ env.REPORT_NAME }}
+          path: reports/semgrep/${{ env.REPORT_NAME }}.json
+
+  validate-reports:
+    name: Validar Relatórios de Segurança
+    runs-on: ubuntu-latest
+    needs: [gitleaks, semgrep]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Gitleaks Report
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gitleaks-*
+          path: reports/gitleaks/
+
+      - name: Download Semgrep Report
+        uses: actions/download-artifact@v4
+        with:
+          pattern: semgrep-*
+          path: reports/semgrep/
+
+      - name: Validar integridade dos relatórios
+        run: |
+          chmod +x scripts/validate-reports.sh
+          bash scripts/validate-reports.sh
 
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    #Task 57 - O Build agora depende do sucesso das ferramentas de segurança (SAST/Secrets)
-    needs: [gitleaks, semgrep]
+    needs: [validate-reports]
 
     steps:
       - name: Baixar código do repositório
