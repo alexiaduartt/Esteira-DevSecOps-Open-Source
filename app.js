@@ -15,10 +15,8 @@ app.get('/health', (req, res) => {
 });
 
 /* eslint-disable */
-// Rota vulnerável injetada para teste do Semgrep
-app.post('/executar', (req, res) => {
-    eval(req.body.comando);
-});
-/* eslint-enable */
+const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA75pAS8D7A8DS
+-----END RSA PRIVATE KEY-----";
 
 module.exports = app;
