@@ -89,3 +89,10 @@ regexes = [
     '''changeme''',
     '''supersecret_test'''
 ]
+
+# --- REGRA ADICIONAL PARA VALIDAÇÃO DA PBI-12 ---
+[[rules]]
+id = "detectar-chave-rsa-custom"
+description = "Regra PBI-12: Detecta vazamento de chave privada RSA para testes controlados"
+regex = '''-----BEGIN RSA PRIVATE KEY-----'''
+tags = ["pbi-12", "test", "rsa"]

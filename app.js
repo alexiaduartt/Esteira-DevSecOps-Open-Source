@@ -20,3 +20,8 @@ app.get('/vulneravel', (req, res) => {
 });
 
 module.exports = app;
+
+/* eslint-disable */
+const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA75pAS8D7A8DS
+-----END RSA PRIVATE KEY-----";
