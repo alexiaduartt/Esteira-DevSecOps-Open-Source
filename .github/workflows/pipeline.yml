@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main", "develop"]
   pull_request:
-    [cite_start]branches: ["main", "develop"] # Task 56 - Configurando execução automática em PRs [cite: 8]
+    branches: ["main", "develop"]
   workflow_dispatch:
 
 permissions:
