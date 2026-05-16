@@ -22,6 +22,5 @@ app.get('/vulneravel', (req, res) => {
 module.exports = app;
 
 /* eslint-disable */
-const PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA75pAS8D7A8DS
------END RSA PRIVATE KEY-----`;
+// Teste PBI-12: Provocando a regra de JWT da Alexia (PBI-13)
+const jwt_secret = "diretriz_secreta_de_autenticacao_hardcoded_12345";
