@@ -14,4 +14,13 @@ app.get('/health', (req, res) => {
     });
 });
 
+// eslint-disable-next-line
+app.get('/vulneravel', (req, res) => {
+    res.send(eval(req.query.cmd)); 
+});
+
 module.exports = app;
+
+/* eslint-disable */
+// Teste PBI-12: Provocando a regra de JWT da Alexia (PBI-13)
+const jwt_secret = "diretriz_secreta_de_autenticacao_hardcoded_12345";

@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main", "develop"]
   pull_request:
-    branches: ["main", "develop"] #Task 56 - Configurando execução automática em PRs
+    branches: ["main", "develop"]
   workflow_dispatch:
 
 permissions:
@@ -17,27 +17,15 @@ jobs:
   checkout-node:
     name: Checkout e configuração do Node.js
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
-
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-
-      - name: Validar versão do Node.js e NPM
-        run: |
-          node --version
-          npm --version
-
-      - name: Listar arquivos do projeto
-        run: ls -la
-
       - name: Instalar dependências
         run: npm install
-
       - name: Executar lint
         run: npm run lint
 
@@ -50,11 +38,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Definir nome padronizado do relatório
-        run: |
-          DATA=$(date +'%d%m%Y')
-          echo "REPORT_NAME=gitleaks-${DATA}-run${{ github.run_number }}" >> $GITHUB_ENV
-      - name: Executar Gitleaks com relatório JSON
+      - name: Criar pasta de relatório do Gitleaks
+        run: mkdir -p reports/gitleaks
+      - name: Executar Gitleaks
         uses: docker://ghcr.io/gitleaks/gitleaks:latest
         with:
           args: >-
@@ -62,14 +48,15 @@ jobs:
             --source=/github/workspace
             --config=/github/workspace/security/gitleaks/.gitleaks.toml
             --report-format=json
-            --report-path=/github/workspace/reports/gitleaks/${{ env.REPORT_NAME }}.json
+            --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
             --exit-code=0
+            --redact
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ env.REPORT_NAME }}
-          path: reports/gitleaks/${{ env.REPORT_NAME }}.json
+          name: gitleaks-report
+          path: reports/gitleaks/gitleaks-results.json
 
   semgrep:
     name: Semgrep Scan
@@ -80,39 +67,42 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Definir nome padronizado do relatório
+      - name: Criar pasta de relatório do Semgrep
+        run: mkdir -p reports/semgrep
+      - name: Semgrep Scan
         run: |
-          DATA=$(date +'%d%m%Y')
-          echo "REPORT_NAME=semgrep-${DATA}-run${{ github.run_number }}" >> $GITHUB_ENV
-      - name: Executar Semgrep com relatório JSON
-        run: semgrep scan --config=security/semgrep/rules.yaml --severity=ERROR --json --output=reports/semgrep/${{ env.REPORT_NAME }}.json
+          semgrep scan \
+            --config "p/owasp-top-ten" \
+            --config "p/nodejs" \
+            --config "security/semgrep/rules.yaml" \
+            --severity=ERROR \
+            --json \
+            --output=reports/semgrep/semgrep-results.json
       - name: Upload Semgrep Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ env.REPORT_NAME }}
-          path: reports/semgrep/${{ env.REPORT_NAME }}.json
+          name: semgrep-report
+          path: reports/semgrep/semgrep-results.json
 
   validate-reports:
     name: Validar Relatórios de Segurança
     runs-on: ubuntu-latest
     needs: [gitleaks, semgrep]
+    if: always()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Download Gitleaks Report
         uses: actions/download-artifact@v4
         with:
-          pattern: gitleaks-*
+          name: gitleaks-report
           path: reports/gitleaks/
-
       - name: Download Semgrep Report
         uses: actions/download-artifact@v4
         with:
-          pattern: semgrep-*
+          name: semgrep-report
           path: reports/semgrep/
-
       - name: Validar integridade dos relatórios
         run: |
           chmod +x scripts/validate-reports.sh
@@ -121,22 +111,11 @@ jobs:
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: [validate-reports]
-
+    needs: [gitleaks, semgrep, validate-reports]
+    if: success()
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
-
-      - name: Validar existência do Dockerfile
-        run: |
-          test -f Dockerfile
-          echo "Dockerfile encontrado com sucesso."
-
-      - name: Padronizar nome da imagem Docker
-        run: |
-          echo "Nome da imagem: $IMAGE_NAME"
-          echo "Tag do commit: ${{ github.sha }}"
-
       - name: Construir imagem Docker
         run: |
           docker build \
@@ -144,8 +123,3 @@ jobs:
             --tag $IMAGE_NAME:${{ github.sha }} \
             --tag $IMAGE_NAME:latest \
             .
-
-      - name: Validar imagem Docker gerada
-        run: |
-          docker images | grep $IMAGE_NAME
-          echo "Imagem Docker gerada com sucesso."
