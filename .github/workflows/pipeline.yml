@@ -17,36 +17,29 @@ jobs:
   checkout-node:
     name: Checkout e configuração do Node.js
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
-
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-
       - name: Instalar dependências
         run: npm install
-
       - name: Executar lint
         run: npm run lint
 
-  # Task 55 - Adicionando Job do Gitleaks para varredura de segredos [cite: 7]
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
-    [cite_start]needs: checkout-node # Task 57 - Dependência do Lint [cite: 9]
+    needs: checkout-node
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Criar pasta de relatório do Gitleaks
-        [cite_start]run: mkdir -p reports/gitleaks [cite: 71]
-
+        run: mkdir -p reports/gitleaks
       - name: Executar Gitleaks
         uses: docker://ghcr.io/gitleaks/gitleaks:latest
         with:
@@ -58,7 +51,6 @@ jobs:
             --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
             --exit-code=0
             --redact
-
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -66,7 +58,6 @@ jobs:
           name: gitleaks-report
           path: reports/gitleaks/gitleaks-results.json
 
-  # Task 55 - Adicionando Job do Semgrep para análise SAST [cite: 7]
   semgrep:
     name: Semgrep Scan
     runs-on: ubuntu-latest
@@ -76,12 +67,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Criar pasta de relatório do Semgrep
-        [cite_start]run: mkdir -p reports/semgrep [cite: 71]
-
+        run: mkdir -p reports/semgrep
       - name: Semgrep Scan
-        # Task 70 - Executando regras OWASP, Node.js e Customizadas [cite: 70]
         run: |
           semgrep scan \
             --config "p/owasp-top-ten" \
@@ -90,10 +78,9 @@ jobs:
             --severity=ERROR \
             --json \
             --output=reports/semgrep/semgrep-results.json
-
       - name: Upload Semgrep Report
         uses: actions/upload-artifact@v4
-        [cite_start]if: always() # Task 58 - Salvando artefato mesmo com erro [cite: 10]
+        if: always()
         with:
           name: semgrep-report
           path: reports/semgrep/semgrep-results.json
@@ -103,23 +90,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: [gitleaks, semgrep]
     if: always()
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Download Gitleaks Report
         uses: actions/download-artifact@v4
         with:
           name: gitleaks-report
           path: reports/gitleaks/
-
       - name: Download Semgrep Report
         uses: actions/download-artifact@v4
         with:
           name: semgrep-report
           path: reports/semgrep/
-
       - name: Validar integridade dos relatórios
         run: |
           chmod +x scripts/validate-reports.sh
@@ -128,16 +111,12 @@ jobs:
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    # Task 57 - O Build depende do sucesso das validações de segurança [cite: 9, 15]
     needs: [gitleaks, semgrep, validate-reports]
     if: success()
-
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
-
       - name: Construir imagem Docker
-        # PBI-11 - O Dockerfile deve conter USER node antes desta execução [cite: 19, 21]
         run: |
           docker build \
             --file Dockerfile \
