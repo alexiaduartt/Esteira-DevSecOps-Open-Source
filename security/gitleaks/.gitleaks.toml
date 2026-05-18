@@ -1,6 +1,98 @@
+# configuração personalizada do gitleaks
+# define exclusões para reduzir falsos positivos e adiciona regras para detectar possíveis secrets
+
+title = "gitleaks config - esteira devsecops open source"
+
+[extend]
+useDefault = true
+
 [allowlist]
-description = "Arquivos permitidos"
+description = "arquivos e pastas ignorados para reduzir falsos positivos"
+
 paths = [
-    '''package-lock\.json''',
-    '''node_modules'''
+    '''(^|/)node_modules/''',
+    '''(^|/)reports/''',
+    '''(^|/)coverage/''',
+    '''(^|/)dist/''',
+    '''(^|/)build/''',
+    '''(^|/)\.git/''',
+    '''(^|/)docs/''',
+    '''package-lock\.json$''',
+    '''yarn\.lock$''',
+    '''npm-shrinkwrap\.json$'''
 ]
+
+regexes = [
+    '''your[_-]?api[_-]?key''',
+    '''<API_KEY>''',
+    '''INSERT_KEY_HERE''',
+    '''FAKE_KEY_FOR_TESTING'''
+]
+
+[[rules]]
+id = "aws-access-key-custom"
+description = "detecta possíveis chaves de acesso aws expostas no código"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+tags = ["aws", "secret", "credentials"]
+
+[rules.allowlist]
+description = "ignora chaves fictícias usadas em testes e exemplos"
+paths = [
+    '''(^|/)tests/''',
+    '''(^|/)__tests__/''',
+    '''(^|/)examples/''',
+    '''\.example$''',
+    '''\.sample$'''
+]
+
+regexes = [
+    '''AKIAIOSFODNN7EXAMPLE''',
+    '''FAKE_KEY_FOR_TESTING'''
+]
+
+[[rules]]
+id = "generic-api-key-custom"
+description = "detecta possíveis api keys escritas diretamente no código"
+regex = '''(?i)(api_key|apikey|api-key)\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}['"]?'''
+tags = ["api-key", "secret"]
+
+[rules.allowlist]
+description = "ignora placeholders e exemplos sem valor real"
+paths = [
+    '''(^|/)tests/''',
+    '''(^|/)__tests__/''',
+    '''(^|/)docs/''',
+    '''(^|/)examples/'''
+]
+
+regexes = [
+    '''your[_-]?api[_-]?key''',
+    '''<API_KEY>''',
+    '''INSERT_KEY_HERE'''
+]
+
+[[rules]]
+id = "jwt-secret-custom"
+description = "detecta possíveis secrets jwt escritos diretamente no código"
+regex = '''(?i)(jwt_secret|jwt[_-]?key|jwtsecret)\s*[:=]\s*['"][^'"]{8,}['"]'''
+tags = ["jwt", "secret"]
+
+[rules.allowlist]
+description = "ignora valores fictícios usados em testes"
+paths = [
+    '''(^|/)tests/''',
+    '''(^|/)__tests__/'''
+]
+
+regexes = [
+    '''your[_-]?secret''',
+    '''changeme''',
+    '''supersecret_test'''
+]
+
+# --- REGRA ADICIONAL PARA VALIDAÇÃO DA PBI-12 ---
+[[rules]]
+id = "detectar-chave-rsa-custom"
+description = "Regra PBI-12: Detecta vazamento de chave privada RSA para testes controlados"
+regex = '''-----BEGIN RSA PRIVATE KEY-----'''
+tags = ["pbi-12", "test", "rsa"]
