@@ -26,7 +26,10 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
-    "jest": "^30.3.0",
+    "jest": "^30.4.2",
     "supertest": "^7.2.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
