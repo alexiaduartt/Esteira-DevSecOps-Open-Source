@@ -50,7 +50,7 @@ jobs:
             --config=/github/workspace/security/gitleaks/.gitleaks.toml
             --report-format=json
             --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
-            --exit-code=0
+            --exit-code=1
             --redact
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
@@ -77,6 +77,7 @@ jobs:
             --config "p/nodejs" \
             --config "security/semgrep/rules.yaml" \
             --severity=ERROR \
+            --error \
             --json \
             --output=reports/semgrep/semgrep-results.json
       - name: Upload Semgrep Report
