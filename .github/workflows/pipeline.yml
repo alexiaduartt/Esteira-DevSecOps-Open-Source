@@ -105,6 +105,7 @@ jobs:
           format: 'json'
           output: 'reports/trivy/trivy-fs-results.json'
           severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
+          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
       - name: Upload Trivy FS Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -182,6 +183,7 @@ jobs:
           format: 'json'
           output: 'reports/trivy/trivy-image-results.json'
           severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
+          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
       - name: Upload Trivy Image Report
         uses: actions/upload-artifact@v4
         if: always()
