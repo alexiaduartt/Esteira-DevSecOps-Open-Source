@@ -150,6 +150,17 @@ jobs:
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
+
+      - name: Validar existência do Dockerfile
+        run: |
+          test -f Dockerfile
+          echo "Dockerfile encontrado com sucesso."
+
+      - name: Padronizar nome da imagem Docker
+        run: |
+          echo "Nome da imagem: $IMAGE_NAME"
+          echo "Tag do commit: ${{ github.sha }}"
+
       - name: Construir imagem Docker
         run: |
           docker build \
@@ -157,6 +168,51 @@ jobs:
             --tag $IMAGE_NAME:${{ github.sha }} \
             --tag $IMAGE_NAME:latest \
             .
+
+      - name: Validar imagem Docker gerada
+        run: |
+          docker images | grep $IMAGE_NAME
+          echo "Imagem Docker gerada com sucesso."
+
+      - name: Criar diretório para SBOM
+        run: mkdir -p reports/trivy/sbom
+
+      - name: Gerar SBOM da imagem Docker com Trivy
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: "image"
+          image-ref: "${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          format: "cyclonedx"
+          output: "reports/trivy/sbom/sbom-cyclonedx.json"
+
+      - name: Validar conteúdo do SBOM
+        run: |
+          test -s reports/trivy/sbom/sbom-cyclonedx.json
+          grep -Eq '"bomFormat"[[:space:]]*:[[:space:]]*"CycloneDX"' reports/trivy/sbom/sbom-cyclonedx.json
+          grep -q '"components"' reports/trivy/sbom/sbom-cyclonedx.json
+          echo "SBOM CycloneDX gerado e validado com sucesso."
+
+      - name: Associar SBOM à imagem Docker gerada
+        run: |
+          cat > reports/trivy/sbom/sbom-metadata.txt <<EOF
+          Imagem Docker: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          Imagem Docker latest: ${{ env.IMAGE_NAME }}:latest
+          Arquivo SBOM: reports/trivy/sbom/sbom-cyclonedx.json
+          Formato SBOM: CycloneDX JSON
+          Commit: ${{ github.sha }}
+          Workflow: ${{ github.workflow }}
+          Run ID: ${{ github.run_id }}
+          EOF
+          cat reports/trivy/sbom/sbom-metadata.txt
+
+      - name: Salvar SBOM como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-${{ github.sha }}
+          path: |
+            reports/trivy/sbom/sbom-cyclonedx.json
+            reports/trivy/sbom/sbom-metadata.txt
+          if-no-files-found: error
 
   # [PBI-16 / TASK 80] Novo job para escanear a imagem final gerada
   trivy-image:
