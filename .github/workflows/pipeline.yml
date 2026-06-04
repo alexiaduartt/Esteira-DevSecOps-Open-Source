@@ -157,16 +157,20 @@ jobs:
           echo "Dockerfile encontrado com sucesso."
 
       - name: Padronizar nome da imagem Docker
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           echo "Nome da imagem: $IMAGE_NAME"
-          echo "Tag do commit: ${{ github.sha }}"
+          echo "Tag do commit: $IMAGE_TAG"
 
       - name: Construir imagem Docker
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
             --file Dockerfile \
-            --tag $IMAGE_NAME:${{ github.sha }} \
-            --tag $IMAGE_NAME:latest \
+            --tag "$IMAGE_NAME:$IMAGE_TAG" \
+            --tag "$IMAGE_NAME:latest" \
             .
 
       - name: Validar imagem Docker gerada
@@ -179,9 +183,11 @@ jobs:
 
       - name: Gerar SBOM da imagem Docker com Trivy
         uses: aquasecurity/trivy-action@0.35.0
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         with:
           scan-type: "image"
-          image-ref: "${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          image-ref: "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           format: "cyclonedx"
           output: "reports/trivy/sbom/sbom-cyclonedx.json"
 
@@ -193,15 +199,19 @@ jobs:
           echo "SBOM CycloneDX gerado e validado com sucesso."
 
       - name: Associar SBOM à imagem Docker gerada
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
         run: |
           cat > reports/trivy/sbom/sbom-metadata.txt <<EOF
-          Imagem Docker: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          Imagem Docker latest: ${{ env.IMAGE_NAME }}:latest
+          Imagem Docker: $IMAGE_NAME:$IMAGE_TAG
+          Imagem Docker latest: $IMAGE_NAME:latest
           Arquivo SBOM: reports/trivy/sbom/sbom-cyclonedx.json
           Formato SBOM: CycloneDX JSON
-          Commit: ${{ github.sha }}
-          Workflow: ${{ github.workflow }}
-          Run ID: ${{ github.run_id }}
+          Commit: $IMAGE_TAG
+          Workflow: $WORKFLOW_NAME
+          Run ID: $WORKFLOW_RUN_ID
           EOF
           cat reports/trivy/sbom/sbom-metadata.txt
 
