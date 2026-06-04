@@ -50,7 +50,7 @@ jobs:
             --config=/github/workspace/security/gitleaks/.gitleaks.toml
             --report-format=json
             --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
-            --exit-code=0
+            --exit-code=1
             --redact
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
@@ -77,6 +77,7 @@ jobs:
             --config "p/nodejs" \
             --config "security/semgrep/rules.yaml" \
             --severity=ERROR \
+            --error \
             --json \
             --output=reports/semgrep/semgrep-results.json
       - name: Upload Semgrep Report
@@ -86,10 +87,37 @@ jobs:
           name: semgrep-report
           path: reports/semgrep/semgrep-results.json
 
+  # [PBI-16 / TASK 80] Novo job para escanear dependências do projeto (npm)
+  trivy-fs:
+    name: Trivy FS Scan
+    runs-on: ubuntu-latest
+    needs: checkout-node
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Criar pasta de relatório do Trivy FS
+        run: mkdir -p reports/trivy
+      - name: Executar Trivy FS
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: 'reports/trivy/trivy-fs-results.json'
+          severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
+          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
+      - name: Upload Trivy FS Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/trivy-fs-results.json
+
   validate-reports:
     name: Validar Relatórios de Segurança
     runs-on: ubuntu-latest
-    needs: [gitleaks, semgrep]
+    # Agora também espera o relatório do Trivy FS para validar tudo junto!
+    needs: [gitleaks, semgrep, trivy-fs]
     if: always()
     steps:
       - name: Checkout code
@@ -104,6 +132,11 @@ jobs:
         with:
           name: semgrep-report
           path: reports/semgrep/
+      - name: Download Trivy FS Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/
       - name: Validar integridade dos relatórios
         run: |
           chmod +x scripts/validate-reports.sh
@@ -112,7 +145,7 @@ jobs:
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: [gitleaks, semgrep, validate-reports]
+    needs: [gitleaks, semgrep, trivy-fs, validate-reports]
     if: success()
     steps:
       - name: Baixar código do repositório
@@ -124,3 +157,36 @@ jobs:
             --tag $IMAGE_NAME:${{ github.sha }} \
             --tag $IMAGE_NAME:latest \
             .
+
+  # [PBI-16 / TASK 80] Novo job para escanear a imagem final gerada
+  trivy-image:
+    name: Trivy Image Scan
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: success()
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+      - name: Construir imagem Docker para Análise
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag $IMAGE_NAME:${{ github.sha }} \
+            .
+      - name: Criar pasta de relatório do Trivy Image
+        run: mkdir -p reports/trivy
+      - name: Executar Trivy Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
+          scan-type: 'image'
+          format: 'json'
+          output: 'reports/trivy/trivy-image-results.json'
+          severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
+          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
+      - name: Upload Trivy Image Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-image-report
+          path: reports/trivy/trivy-image-results.json
