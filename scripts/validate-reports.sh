@@ -7,7 +7,7 @@ set -euo pipefail
 REPORT_DIR="reports"
 ERRORS=0
 
-for tool_dir in "$REPORT_DIR"/gitleaks "$REPORT_DIR"/semgrep; do
+for tool_dir in "$REPORT_DIR"/gitleaks "$REPORT_DIR"/semgrep "$REPORT_DIR"/trivy; do
   TOOL=$(basename "$tool_dir")
   echo "Validando relatórios de $TOOL"
 
