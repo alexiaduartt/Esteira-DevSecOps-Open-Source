@@ -256,3 +256,49 @@ jobs:
         with:
           name: trivy-image-report
           path: reports/trivy/trivy-image-results.json
+
+  # [PBI-20] Consolidar relatórios SCA (Trivy FS + Image)
+  consolidate-reports:
+    name: Consolidar Relatórios SCA
+    runs-on: ubuntu-latest
+    needs: [trivy-fs, trivy-image]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download Trivy FS Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Download Trivy Image Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-image-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Gerar relatório consolidado
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: python3 scripts/consolidate-reports.py
+
+      - name: Upload relatório consolidado
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: consolidated-sca-report
+          path: |
+            reports/trivy/consolidated-report.json
+            reports/trivy/defectdojo-import.sh
+          if-no-files-found: error
