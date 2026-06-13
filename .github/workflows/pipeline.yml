@@ -246,6 +246,7 @@ jobs:
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
           scan-type: 'image'
+          trivyignores: '.trivyignore'
           format: 'json'
           output: 'reports/trivy/trivy-image-results.json'
           severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
