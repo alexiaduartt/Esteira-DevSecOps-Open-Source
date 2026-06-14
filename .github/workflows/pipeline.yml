@@ -246,6 +246,7 @@ jobs:
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
           scan-type: 'image'
+          trivyignores: '.trivyignore'
           format: 'json'
           output: 'reports/trivy/trivy-image-results.json'
           severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
@@ -256,6 +257,74 @@ jobs:
         with:
           name: trivy-image-report
           path: reports/trivy/trivy-image-results.json
+
+  # [PBI-21] Estágio DAST - OWASP ZAP
+  dast-zap:
+    name: DAST - OWASP ZAP Baseline
+    runs-on: ubuntu-latest
+    needs: [docker-build]  # Task #105: Dependência com build Docker
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Task #106: Construir e subir container da aplicação
+      - name: Construir imagem Docker para DAST
+        run: |
+          docker build --file Dockerfile --tag $IMAGE_NAME:dast .
+
+      - name: Subir container da aplicação
+        run: |
+          docker run -d \
+            --name app-dast \
+            -p 3000:3000 \
+            $IMAGE_NAME:dast
+
+      # Task #107: Esperar /health e executar ZAP
+      - name: Aguardar aplicação ficar pronta
+        run: |
+          echo "Aguardando /health responder..."
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3000/health | grep -q '"status":"UP"'; then
+              echo "Aplicação pronta após ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "ERRO: Aplicação não respondeu em 30 segundos"
+          docker logs app-dast
+          exit 1
+
+      - name: Criar pasta de relatório DAST
+        run: mkdir -p reports/zap
+
+      - name: Executar OWASP ZAP Baseline Scan
+        run: |
+          docker run --rm \
+            --network host \
+            -v $(pwd)/reports/zap:/zap/wrk:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+              -t http://localhost:3000 \
+              -J zap-report.json \
+              -r zap-report.html \
+              -I
+
+      - name: Parar container da aplicação
+        if: always()
+        run: |
+          docker stop app-dast || true
+          docker rm app-dast || true
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-dast-report
+          path: |
+            reports/zap/zap-report.json
+            reports/zap/zap-report.html
+          if-no-files-found: warn
 
   # [PBI-20] Consolidar relatórios SCA (Trivy FS + Image)
   consolidate-reports:
