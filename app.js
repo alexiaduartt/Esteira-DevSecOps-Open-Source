@@ -7,9 +7,11 @@ app.get('/', (req, res) => {
 });
 
 // Rota /health para monitoramento e health check
+// PBI-22: Adicionado campo 'message' para validação do teste dinâmico (DAST/ZAP)
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'UP',
+        message: 'Aplicação disponível para teste dinâmico',
         timestamp: new Date().toISOString()
     });
 });
