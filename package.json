@@ -31,6 +31,8 @@
     "supertest": "^7.2.2"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0"
   }
 }
