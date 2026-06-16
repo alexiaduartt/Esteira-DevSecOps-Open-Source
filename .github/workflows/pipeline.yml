@@ -262,6 +262,10 @@ jobs:
     name: Executar DAST com OWASP ZAP
     needs: docker-build 
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
