@@ -177,6 +177,7 @@ jobs:
         run: |
           docker images | grep $IMAGE_NAME
           echo "Imagem Docker gerada com sucesso."
+<<<<<<< Updated upstream
 
       - name: Criar diretório para SBOM
         run: mkdir -p reports/trivy/sbom
@@ -371,3 +372,43 @@ jobs:
             reports/trivy/consolidated-report.json
             reports/trivy/defectdojo-import.sh
           if-no-files-found: error
+=======
+  dast-zap:
+    name: Executar DAST com OWASP ZAP
+    needs: docker-build # O DAST entra após o build, pois precisa do container
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+      
+      # Subir a aplicação configurada na PBI-22
+      - name: Subir aplicação para teste
+        run: docker compose up -d --build
+      
+      # Aguardar a aplicação ficar pronta (Garante que o ZAP não escaneie no vazio)
+      - name: Aguardar o healthcheck
+        run: npx wait-on http://localhost:3000/health || sleep 15
+      
+      # Task 119 e 120: Executar o scan e gerar relatórios
+      - name: Executar OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: 'security/zap/zap-rules.tsv'
+          fail_action: false
+          
+      # Organizar os arquivos para respeitar a estrutura de pastas
+      - name: Mover relatórios para a pasta correta
+        run: |
+          mkdir -p reports/zap
+          mv report_html.html reports/zap/ 2>/dev/null || true
+          mv report_json.json reports/zap/ 2>/dev/null || true
+          
+      # Task 121: Salvar relatórios como artifacts no GitHub
+      - name: Upload dos Relatórios ZAP
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-zap-reports
+          path: reports/zap/
+>>>>>>> Stashed changes
