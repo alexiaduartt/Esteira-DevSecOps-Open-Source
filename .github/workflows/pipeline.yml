@@ -74,3 +74,35 @@ jobs:
         run: |
           docker images | grep $IMAGE_NAME
           echo "Imagem Docker gerada com sucesso."
+
+  dast-governance:
+    name: "PBI-25: Governança DAST"
+    runs-on: ubuntu-latest
+    needs: docker-build
+    continue-on-error: false
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Classificar alertas DAST e gerar relatório
+        run: node scripts/classify-zap-alerts.js
+
+      - name: Verificar quality gate DAST (bloqueia em alertas HIGH)
+        run: node scripts/check-zap-gate.js
+
+      - name: Upload relatório de governança DAST
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-governance-report
+          path: reports/zap/zap-*-pbi25.json
+          retention-days: 30

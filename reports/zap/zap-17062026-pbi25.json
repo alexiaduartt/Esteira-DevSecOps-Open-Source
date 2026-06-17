@@ -1,0 +1,289 @@
+{
+  "@version": "2.16.0",
+  "@generated": "2026-06-17T15:00:00-03:00",
+  "_pbi": "PBI-25",
+  "_generatedBy": "classify-zap-alerts.js",
+  "site": [
+    {
+      "@name": "http://localhost:3000",
+      "@host": "localhost",
+      "@port": "3000",
+      "@ssl": "false",
+      "alerts": [
+        {
+          "pluginid": "10202",
+          "alertRef": "10202",
+          "alert": "Absence of Anti-CSRF Tokens",
+          "name": "Absence of Anti-CSRF Tokens",
+          "riskcode": "2",
+          "riskdesc": "Medium (Low)",
+          "confidence": "2",
+          "confidencedesc": "Low",
+          "desc": "No Anti-CSRF tokens were found in a HTML submission form.",
+          "uri": "http://localhost:3000/",
+          "method": "GET",
+          "param": "",
+          "attack": "",
+          "evidence": "<form>",
+          "otherinfo": "No known Anti-CSRF token found in the form.",
+          "solution": "Use a known Anti-CSRF pattern.",
+          "reference": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html",
+          "cweid": "352",
+          "wascid": "9",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "<form>"
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "medium",
+            "owaspCategory": "A01:2025",
+            "owaspLabel": "A01:2025 - Broken Access Control",
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.053Z"
+          }
+        },
+        {
+          "pluginid": "10038",
+          "alertRef": "10038-1",
+          "alert": "Content Security Policy (CSP) Header Not Set",
+          "name": "Content Security Policy (CSP) Header Not Set",
+          "riskcode": "2",
+          "riskdesc": "Medium (High)",
+          "confidence": "3",
+          "confidencedesc": "High",
+          "desc": "Content Security Policy (CSP) is an added layer of security.",
+          "uri": "http://localhost:3000/",
+          "method": "GET",
+          "param": "",
+          "attack": "",
+          "evidence": "",
+          "otherinfo": "",
+          "solution": "Ensure that your web server, application server, load balancer, etc. is configured to set the Content-Security-Policy header.",
+          "reference": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
+          "cweid": "693",
+          "wascid": "15",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "medium",
+            "owaspCategory": null,
+            "owaspLabel": null,
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.061Z"
+          }
+        },
+        {
+          "pluginid": "90033",
+          "alertRef": "90033",
+          "alert": "Loosely Scoped Cookie",
+          "name": "Loosely Scoped Cookie",
+          "riskcode": "0",
+          "riskdesc": "Informational (Low)",
+          "confidence": "1",
+          "confidencedesc": "Low",
+          "desc": "Cookies can be scoped by domain or path.",
+          "uri": "http://localhost:3000/",
+          "method": "GET",
+          "param": "",
+          "attack": "",
+          "evidence": "",
+          "otherinfo": "",
+          "solution": "Always scope cookies to a FQDN.",
+          "reference": "https://tools.ietf.org/html/rfc6265#section-4.1",
+          "cweid": "565",
+          "wascid": "15",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "informational",
+            "owaspCategory": "A08:2025",
+            "owaspLabel": "A08:2025 - Software or Data Integrity Failures",
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.061Z"
+          }
+        },
+        {
+          "pluginid": "10096",
+          "alertRef": "10096-1",
+          "alert": "Timestamp Disclosure - Unix",
+          "name": "Timestamp Disclosure - Unix",
+          "riskcode": "0",
+          "riskdesc": "Informational (Low)",
+          "confidence": "1",
+          "confidencedesc": "Low",
+          "desc": "A timestamp was disclosed by the application/web server - Unix.",
+          "uri": "http://localhost:3000/health",
+          "method": "GET",
+          "param": "",
+          "attack": "",
+          "evidence": "1718646000",
+          "otherinfo": "",
+          "solution": "Manually confirm that the timestamp data is not sensitive.",
+          "reference": "https://cwe.mitre.org/data/definitions/200.html",
+          "cweid": "200",
+          "wascid": "13",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/health",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "1718646000"
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "informational",
+            "owaspCategory": "A01:2025",
+            "owaspLabel": "A01:2025 - Broken Access Control",
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.061Z"
+          }
+        },
+        {
+          "pluginid": "10035",
+          "alertRef": "10035",
+          "alert": "Strict-Transport-Security Header Not Set",
+          "name": "Strict-Transport-Security Header Not Set",
+          "riskcode": "1",
+          "riskdesc": "Low (High)",
+          "confidence": "3",
+          "confidencedesc": "High",
+          "desc": "HTTP Strict Transport Security (HSTS) is a web security policy mechanism.",
+          "uri": "http://localhost:3000/",
+          "method": "GET",
+          "param": "",
+          "attack": "",
+          "evidence": "",
+          "otherinfo": "",
+          "solution": "Ensure that your web server, application server, load balancer, etc. is configured to enforce Strict-Transport-Security.",
+          "reference": "https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Strict_Transport_Security_Cheat_Sheet.html",
+          "cweid": "319",
+          "wascid": "15",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "low",
+            "owaspCategory": "A04:2025",
+            "owaspLabel": "A04:2025 - Cryptographic Failures",
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.061Z"
+          }
+        },
+        {
+          "pluginid": "40012",
+          "alertRef": "40012",
+          "alert": "Cross Site Scripting (Reflected)",
+          "name": "Cross Site Scripting (Reflected)",
+          "riskcode": "3",
+          "riskdesc": "High (Medium)",
+          "confidence": "2",
+          "confidencedesc": "Medium",
+          "desc": "Cross-site Scripting (XSS) is an attack technique that involves echoing attacker-supplied code into a user's browser instance.",
+          "uri": "http://localhost:3000/search?q=<script>alert(1)</script>",
+          "method": "GET",
+          "param": "q",
+          "attack": "<script>alert(1)</script>",
+          "evidence": "<script>alert(1)</script>",
+          "otherinfo": "",
+          "solution": "Validate all input and encode output.",
+          "reference": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+          "cweid": "79",
+          "wascid": "8",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/search?q=<script>alert(1)</script>",
+              "method": "GET",
+              "param": "q",
+              "attack": "<script>alert(1)</script>",
+              "evidence": "<script>alert(1)</script>"
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "high",
+            "owaspCategory": "A05:2025",
+            "owaspLabel": "A05:2025 - Injection",
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.061Z"
+          }
+        },
+        {
+          "pluginid": "40018",
+          "alertRef": "40018",
+          "alert": "SQL Injection",
+          "name": "SQL Injection",
+          "riskcode": "3",
+          "riskdesc": "High (Medium)",
+          "confidence": "2",
+          "confidencedesc": "Medium",
+          "desc": "SQL injection may be possible.",
+          "uri": "http://localhost:3000/api/users?id=1 OR 1=1",
+          "method": "GET",
+          "param": "id",
+          "attack": "1 OR 1=1",
+          "evidence": "",
+          "otherinfo": "The page results were successfully manipulated using the boolean conditions.",
+          "solution": "Use parameterized queries.",
+          "reference": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+          "cweid": "89",
+          "wascid": "19",
+          "sourceid": "1",
+          "instances": [
+            {
+              "uri": "http://localhost:3000/api/users?id=1 OR 1=1",
+              "method": "GET",
+              "param": "id",
+              "attack": "1 OR 1=1",
+              "evidence": ""
+            }
+          ],
+          "count": "1",
+          "_governance": {
+            "severity": "high",
+            "owaspCategory": "A05:2025",
+            "owaspLabel": "A05:2025 - Injection",
+            "pbi": "PBI-25",
+            "classifiedAt": "2026-06-17T18:35:05.061Z"
+          }
+        }
+      ]
+    }
+  ]
+}
