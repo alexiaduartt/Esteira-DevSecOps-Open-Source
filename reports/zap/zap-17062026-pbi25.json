@@ -46,7 +46,7 @@
             "owaspCategory": "A01:2025",
             "owaspLabel": "A01:2025 - Broken Access Control",
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.053Z"
+            "classifiedAt": "2026-06-17T19:01:41.326Z"
           }
         },
         {
@@ -85,7 +85,7 @@
             "owaspCategory": null,
             "owaspLabel": null,
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.061Z"
+            "classifiedAt": "2026-06-17T19:01:41.337Z"
           }
         },
         {
@@ -124,7 +124,7 @@
             "owaspCategory": "A08:2025",
             "owaspLabel": "A08:2025 - Software or Data Integrity Failures",
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.061Z"
+            "classifiedAt": "2026-06-17T19:01:41.337Z"
           }
         },
         {
@@ -163,7 +163,7 @@
             "owaspCategory": "A01:2025",
             "owaspLabel": "A01:2025 - Broken Access Control",
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.061Z"
+            "classifiedAt": "2026-06-17T19:01:41.337Z"
           }
         },
         {
@@ -202,7 +202,7 @@
             "owaspCategory": "A04:2025",
             "owaspLabel": "A04:2025 - Cryptographic Failures",
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.061Z"
+            "classifiedAt": "2026-06-17T19:01:41.337Z"
           }
         },
         {
@@ -241,7 +241,7 @@
             "owaspCategory": "A05:2025",
             "owaspLabel": "A05:2025 - Injection",
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.061Z"
+            "classifiedAt": "2026-06-17T19:01:41.337Z"
           }
         },
         {
@@ -280,7 +280,7 @@
             "owaspCategory": "A05:2025",
             "owaspLabel": "A05:2025 - Injection",
             "pbi": "PBI-25",
-            "classifiedAt": "2026-06-17T18:35:05.061Z"
+            "classifiedAt": "2026-06-17T19:01:41.337Z"
           }
         }
       ]

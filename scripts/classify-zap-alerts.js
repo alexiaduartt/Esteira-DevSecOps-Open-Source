@@ -252,9 +252,6 @@ function formatForDefectDojo(zapJson, enrichedAlerts) {
   const sites = zapJson.site || [];
 
   const formattedSites = sites.map((site) => {
-    // Recupera os alertas enriquecidos que pertencem a este site
-    const siteHost = site['@host'] || site['@name'] || '';
-
     const formattedAlerts = (site.alerts || []).map((originalAlert) => {
       // Encontra o alerta enriquecido correspondente
       const enriched = enrichedAlerts.find(
