@@ -2,11 +2,9 @@ name: Pipeline Base - GitHub Actions
 
 on:
   push:
-    branches: [ "main", "develop" ]
-
+    branches: ["main", "develop"]
   pull_request:
-    branches: [ "main", "develop" ]
-
+    branches: ["main", "develop"]
   workflow_dispatch:
 
 permissions:
@@ -14,40 +12,141 @@ permissions:
 
 env:
   IMAGE_NAME: esteira-devsecops-open-source
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   checkout-node:
     name: Checkout e configuração do Node.js
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
-
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-
-      - name: Validar versão do Node.js e NPM
-        run: |
-          node --version
-          npm --version
-
-      - name: Listar arquivos do projeto
-        run: ls -la
-
       - name: Instalar dependências
         run: npm install
-
       - name: Executar lint
         run: npm run lint
+
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+    needs: checkout-node
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Criar pasta de relatório do Gitleaks
+        run: mkdir -p reports/gitleaks
+      - name: Executar Gitleaks
+        uses: docker://ghcr.io/gitleaks/gitleaks:latest
+        with:
+          args: >-
+            detect
+            --source=/github/workspace
+            --config=/github/workspace/security/gitleaks/.gitleaks.toml
+            --report-format=json
+            --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
+            --exit-code=1
+            --redact
+      - name: Upload Gitleaks Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gitleaks-report
+          path: reports/gitleaks/gitleaks-results.json
+
+  semgrep:
+    name: Semgrep Scan
+    runs-on: ubuntu-latest
+    needs: checkout-node
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Criar pasta de relatório do Semgrep
+        run: mkdir -p reports/semgrep
+      - name: Semgrep Scan
+        run: |
+          semgrep scan \
+            --config "p/owasp-top-ten" \
+            --config "p/nodejs" \
+            --config "security/semgrep/rules.yaml" \
+            --severity=ERROR \
+            --error \
+            --json \
+            --output=reports/semgrep/semgrep-results.json
+      - name: Upload Semgrep Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-report
+          path: reports/semgrep/semgrep-results.json
+
+  # [PBI-16 / TASK 80] Novo job para escanear dependências do projeto (npm)
+  trivy-fs:
+    name: Trivy FS Scan
+    runs-on: ubuntu-latest
+    needs: checkout-node
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Criar pasta de relatório do Trivy FS
+        run: mkdir -p reports/trivy
+      - name: Executar Trivy FS
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: 'reports/trivy/trivy-fs-results.json'
+          severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
+          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
+      - name: Upload Trivy FS Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/trivy-fs-results.json
+
+  validate-reports:
+    name: Validar Relatórios de Segurança
+    runs-on: ubuntu-latest
+    # Agora também espera o relatório do Trivy FS para validar tudo junto!
+    needs: [gitleaks, semgrep, trivy-fs]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download Gitleaks Report
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-report
+          path: reports/gitleaks/
+      - name: Download Semgrep Report
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/semgrep/
+      - name: Download Trivy FS Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/
+      - name: Validar integridade dos relatórios
+        run: |
+          chmod +x scripts/validate-reports.sh
+          bash scripts/validate-reports.sh
 
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: checkout-node
-
+    needs: [gitleaks, semgrep, trivy-fs, validate-reports]
+    if: success()
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -58,16 +157,20 @@ jobs:
           echo "Dockerfile encontrado com sucesso."
 
       - name: Padronizar nome da imagem Docker
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           echo "Nome da imagem: $IMAGE_NAME"
-          echo "Tag do commit: ${{ github.sha }}"
+          echo "Tag do commit: $IMAGE_TAG"
 
       - name: Construir imagem Docker
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
             --file Dockerfile \
-            --tag $IMAGE_NAME:${{ github.sha }} \
-            --tag $IMAGE_NAME:latest \
+            --tag "$IMAGE_NAME:$IMAGE_TAG" \
+            --tag "$IMAGE_NAME:latest" \
             .
 
       - name: Validar imagem Docker gerada
@@ -75,10 +178,156 @@ jobs:
           docker images | grep $IMAGE_NAME
           echo "Imagem Docker gerada com sucesso."
 
+      - name: Criar diretório para SBOM
+        run: mkdir -p reports/trivy/sbom
+
+      - name: Gerar SBOM da imagem Docker com Trivy
+        uses: aquasecurity/trivy-action@0.35.0
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          scan-type: "image"
+          image-ref: "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          format: "cyclonedx"
+          output: "reports/trivy/sbom/sbom-cyclonedx.json"
+
+      - name: Validar conteúdo do SBOM
+        run: |
+          test -s reports/trivy/sbom/sbom-cyclonedx.json
+          grep -Eq '"bomFormat"[[:space:]]*:[[:space:]]*"CycloneDX"' reports/trivy/sbom/sbom-cyclonedx.json
+          grep -q '"components"' reports/trivy/sbom/sbom-cyclonedx.json
+          echo "SBOM CycloneDX gerado e validado com sucesso."
+
+      - name: Associar SBOM à imagem Docker gerada
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+        run: |
+          cat > reports/trivy/sbom/sbom-metadata.txt <<EOF
+          Imagem Docker: $IMAGE_NAME:$IMAGE_TAG
+          Imagem Docker latest: $IMAGE_NAME:latest
+          Arquivo SBOM: reports/trivy/sbom/sbom-cyclonedx.json
+          Formato SBOM: CycloneDX JSON
+          Commit: $IMAGE_TAG
+          Workflow: $WORKFLOW_NAME
+          Run ID: $WORKFLOW_RUN_ID
+          EOF
+          cat reports/trivy/sbom/sbom-metadata.txt
+
+      - name: Salvar SBOM como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-${{ github.sha }}
+          path: |
+            reports/trivy/sbom/sbom-cyclonedx.json
+            reports/trivy/sbom/sbom-metadata.txt
+          if-no-files-found: error
+
+  trivy-image:
+    name: Trivy Image Scan
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: success()
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+      - name: Construir imagem Docker para Análise
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag $IMAGE_NAME:${{ github.sha }} \
+            .
+      - name: Criar pasta de relatório do Trivy Image
+        run: mkdir -p reports/trivy
+      - name: Executar Trivy Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
+          scan-type: 'image'
+          trivyignores: '.trivyignore'
+          format: 'json'
+          output: 'reports/trivy/trivy-image-results.json'
+          severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
+          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
+      - name: Upload Trivy Image Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-image-report
+          path: reports/trivy/trivy-image-results.json
+
+  dast-zap:
+    name: DAST - OWASP ZAP Baseline
+    runs-on: ubuntu-latest
+    needs: [docker-build]  # Task #105: Dependência com build Docker
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Task #106: Construir e subir container da aplicação
+      - name: Construir imagem Docker para DAST
+        run: |
+          docker build --file Dockerfile --tag $IMAGE_NAME:dast .
+
+      - name: Subir container da aplicação
+        run: |
+          docker run -d \
+            --name app-dast \
+            -p 3000:3000 \
+            $IMAGE_NAME:dast
+
+      # Task #107: Esperar /health e executar ZAP
+      - name: Aguardar aplicação ficar pronta
+        run: |
+          echo "Aguardando /health responder..."
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3000/health | grep -q '"status":"UP"'; then
+              echo "Aplicação pronta após ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "ERRO: Aplicação não respondeu em 30 segundos"
+          docker logs app-dast
+          exit 1
+
+      - name: Criar pasta de relatório DAST
+        run: mkdir -p reports/zap
+
+      - name: Executar OWASP ZAP Baseline Scan
+        run: |
+          docker run --rm \
+            --network host \
+            -v $(pwd)/reports/zap:/zap/wrk:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+              -t http://localhost:3000 \
+              -J zap-report.json \
+              -r zap-report.html \
+              -I
+
+      - name: Parar container da aplicação
+        if: always()
+        run: |
+          docker stop app-dast || true
+          docker rm app-dast || true
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-dast-report
+          path: |
+            reports/zap/zap-report.json
+            reports/zap/zap-report.html
+          if-no-files-found: warn
+
   dast-governance:
     name: "PBI-25: Governança DAST"
     runs-on: ubuntu-latest
-    needs: docker-build
+    needs: dast-zap
     continue-on-error: false
 
     steps:
@@ -93,6 +342,12 @@ jobs:
       - name: Instalar dependências
         run: npm install
 
+      - name: Baixar relatório do ZAP
+        uses: actions/download-artifact@v4
+        with:
+          name: zap-dast-report
+          path: reports/zap/
+
       - name: Classificar alertas DAST e gerar relatório
         run: node scripts/classify-zap-alerts.js
 
@@ -106,3 +361,48 @@ jobs:
           name: dast-governance-report
           path: reports/zap/zap-*-pbi25.json
           retention-days: 30
+
+  consolidate-reports:
+    name: Consolidar Relatórios SCA
+    runs-on: ubuntu-latest
+    needs: [trivy-fs, trivy-image]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download Trivy FS Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Download Trivy Image Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-image-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Gerar relatório consolidado
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: python3 scripts/consolidate-reports.py
+
+      - name: Upload relatório consolidado
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: consolidated-sca-report
+          path: |
+            reports/trivy/consolidated-report.json
+            reports/trivy/defectdojo-import.sh
+          if-no-files-found: error

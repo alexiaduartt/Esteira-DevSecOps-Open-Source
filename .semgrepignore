@@ -1,0 +1,23 @@
+# arquivos ignorados pelo semgrep
+# reduz análise em dependências, builds, relatórios e arquivos gerados automaticamente
+
+node_modules/
+dist/
+build/
+.next/
+out/
+
+reports/
+coverage/
+*.sarif
+*.json.report
+
+package-lock.json
+yarn.lock
+npm-shrinkwrap.json
+
+docs/
+*.md
+*.example
+*.sample
+*.min.js

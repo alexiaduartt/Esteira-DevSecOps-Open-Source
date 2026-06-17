@@ -1,5 +1,4 @@
 node_modules/
 .env
 desktop.ini
-reports/*.json
-reports/*.html
+reports/*
