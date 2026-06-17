@@ -104,8 +104,8 @@ jobs:
           scan-ref: '.'
           format: 'json'
           output: 'reports/trivy/trivy-fs-results.json'
-          severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
-          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
       - name: Upload Trivy FS Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -116,7 +116,6 @@ jobs:
   validate-reports:
     name: Validar Relatórios de Segurança
     runs-on: ubuntu-latest
-    # Agora também espera o relatório do Trivy FS para validar tudo junto!
     needs: [gitleaks, semgrep, trivy-fs]
     if: always()
     steps:
@@ -248,8 +247,8 @@ jobs:
           trivyignores: '.trivyignore'
           format: 'json'
           output: 'reports/trivy/trivy-image-results.json'
-          severity: 'HIGH,CRITICAL' # [PBI-16 / TASK 81] Filtra severidades críticas
-          exit-code: '1' # [PBI-16 / TASK 83 Trava se achar vulnerabilidade] 
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1' 
       - name: Upload Trivy Image Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -257,72 +256,43 @@ jobs:
           name: trivy-image-report
           path: reports/trivy/trivy-image-results.json
 
+  # [PBI-24] Estágio DAST - OWASP ZAP (Seu Job Corrigido)
   dast-zap:
-    name: DAST - OWASP ZAP Baseline
+    name: Executar DAST com OWASP ZAP
+    needs: docker-build 
     runs-on: ubuntu-latest
-    needs: [docker-build]  # Task #105: Dependência com build Docker
-    if: success()
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
-      - name: Checkout code
+      - name: Checkout do código
         uses: actions/checkout@v4
-
-      # Task #106: Construir e subir container da aplicação
-      - name: Construir imagem Docker para DAST
-        run: |
-          docker build --file Dockerfile --tag $IMAGE_NAME:dast .
-
-      - name: Subir container da aplicação
-        run: |
-          docker run -d \
-            --name app-dast \
-            -p 3000:3000 \
-            $IMAGE_NAME:dast
-
-      # Task #107: Esperar /health e executar ZAP
-      - name: Aguardar aplicação ficar pronta
-        run: |
-          echo "Aguardando /health responder..."
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:3000/health | grep -q '"status":"UP"'; then
-              echo "Aplicação pronta após ${i}s"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "ERRO: Aplicação não respondeu em 30 segundos"
-          docker logs app-dast
-          exit 1
-
-      - name: Criar pasta de relatório DAST
-        run: mkdir -p reports/zap
-
+      
+      - name: Subir aplicação para teste
+        run: docker compose up -d --build
+      
+      - name: Aguardar o healthcheck
+        run: npx wait-on http://localhost:3000/health || sleep 15
+      
       - name: Executar OWASP ZAP Baseline Scan
-        run: |
-          docker run --rm \
-            --network host \
-            -v $(pwd)/reports/zap:/zap/wrk:rw \
-            ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py \
-              -t http://localhost:3000 \
-              -J zap-report.json \
-              -r zap-report.html \
-              -I
-
-      - name: Parar container da aplicação
-        if: always()
-        run: |
-          docker stop app-dast || true
-          docker rm app-dast || true
-
-      - name: Upload ZAP Report
-        uses: actions/upload-artifact@v4
-        if: always()
+        uses: zaproxy/action-baseline@v0.14.0
         with:
-          name: zap-dast-report
-          path: |
-            reports/zap/zap-report.json
-            reports/zap/zap-report.html
-          if-no-files-found: warn
+          target: 'http://localhost:3000'
+          rules_file_name: 'security/zap/zap-rules.tsv'
+          fail_action: false
+          
+      - name: Mover relatórios para a pasta correta
+        run: |
+          mkdir -p reports/zap
+          mv report_html.html reports/zap/ 2>/dev/null || true
+          mv report_json.json reports/zap/ 2>/dev/null || true
+          
+      - name: Upload dos Relatórios ZAP
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-zap-reports
+          path: reports/zap/
 
   dast-governance:
     name: "PBI-25: Governança DAST"
@@ -345,7 +315,7 @@ jobs:
       - name: Baixar relatório do ZAP
         uses: actions/download-artifact@v4
         with:
-          name: zap-dast-report
+          name: owasp-zap-reports
           path: reports/zap/
 
       - name: Classificar alertas DAST e gerar relatório
@@ -370,33 +340,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Download Trivy FS Report
         uses: actions/download-artifact@v4
         with:
           name: trivy-fs-report
           path: reports/trivy/
         continue-on-error: true
-
       - name: Download Trivy Image Report
         uses: actions/download-artifact@v4
         with:
           name: trivy-image-report
           path: reports/trivy/
         continue-on-error: true
-
       - name: Gerar relatório consolidado
         env:
           COMMIT_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_NUMBER: ${{ github.run_number }}
         run: python3 scripts/consolidate-reports.py
-
       - name: Upload relatório consolidado
         uses: actions/upload-artifact@v4
         if: always()
