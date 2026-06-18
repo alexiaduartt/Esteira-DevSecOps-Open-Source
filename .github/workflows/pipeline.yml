@@ -248,7 +248,7 @@ jobs:
           format: 'json'
           output: 'reports/trivy/trivy-image-results.json'
           severity: 'HIGH,CRITICAL'
-          exit-code: '1' 
+          exit-code: '1'
       - name: Upload Trivy Image Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -256,10 +256,10 @@ jobs:
           name: trivy-image-report
           path: reports/trivy/trivy-image-results.json
 
-  # [PBI-24] Estágio DAST - OWASP ZAP (Seu Job Corrigido)
+  # [PBI-24] Estágio DAST - OWASP ZAP
   dast-zap:
     name: Executar DAST com OWASP ZAP
-    needs: docker-build 
+    needs: docker-build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -268,26 +268,26 @@ jobs:
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
-      
+
       - name: Subir aplicação para teste
         run: docker compose up -d --build
-      
+
       - name: Aguardar o healthcheck
         run: npx wait-on http://localhost:3000/health || sleep 15
-      
+
       - name: Executar OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://localhost:3000'
           rules_file_name: 'security/zap/zap-rules.tsv'
           fail_action: false
-          
+
       - name: Mover relatórios para a pasta correta
         run: |
           mkdir -p reports/zap
           mv report_html.html reports/zap/ 2>/dev/null || true
           mv report_json.json reports/zap/ 2>/dev/null || true
-          
+
       - name: Upload dos Relatórios ZAP
         uses: actions/upload-artifact@v4
         with:
@@ -319,10 +319,10 @@ jobs:
           path: reports/zap/
 
       - name: Classificar alertas DAST e gerar relatório
-        run: node scripts/classify-zap-alerts.js
+        run: node scripts/classify-zap-alerts.js reports/zap/report_json.json
 
       - name: Verificar quality gate DAST (bloqueia em alertas HIGH)
-        run: node scripts/check-zap-gate.js
+        run: node scripts/check-zap-gate.js reports/zap/report_json.json
 
       - name: Upload relatório de governança DAST
         if: always()
