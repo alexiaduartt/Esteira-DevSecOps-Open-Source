@@ -76,8 +76,15 @@ function findLatestZapReport() {
     return null;
   }
 
+  // Prioriza o arquivo de relatório oficial gerado no pipeline pelo OWASP ZAP
+  const officialReport = path.join(REPORTS_DIR, 'report_json.json');
+  if (fs.existsSync(officialReport)) {
+    return officialReport;
+  }
+
+  // Busca outro arquivo JSON como fallback, ignorando arquivos de mock e de governança
   const files = fs.readdirSync(REPORTS_DIR)
-    .filter((f) => f.endsWith('.json') && !f.includes('pbi25'))
+    .filter((f) => f.endsWith('.json') && !f.includes('pbi25') && !f.includes('mock'))
     .map((f) => ({
       name: f,
       mtime: fs.statSync(path.join(REPORTS_DIR, f)).mtimeMs,
