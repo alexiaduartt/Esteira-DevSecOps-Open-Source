@@ -100,12 +100,12 @@ jobs:
       - name: Executar Trivy FS
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'json'
-          output: 'reports/trivy/trivy-fs-results.json'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "json"
+          output: "reports/trivy/trivy-fs-results.json"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
       - name: Upload Trivy FS Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -242,13 +242,13 @@ jobs:
       - name: Executar Trivy Image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
-          scan-type: 'image'
-          trivyignores: '.trivyignore'
-          format: 'json'
-          output: 'reports/trivy/trivy-image-results.json'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+          image-ref: "${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          scan-type: "image"
+          trivyignores: ".trivyignore"
+          format: "json"
+          output: "reports/trivy/trivy-image-results.json"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
       - name: Upload Trivy Image Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -278,8 +278,8 @@ jobs:
       - name: Executar OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: 'http://localhost:3000'
-          rules_file_name: 'security/zap/zap-rules.tsv'
+          target: "http://localhost:3000"
+          rules_file_name: "security/zap/zap-rules.tsv"
           fail_action: false
 
       - name: Mover relatórios para a pasta correta
@@ -343,7 +343,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - name: Download Trivy FS Report
         uses: actions/download-artifact@v4
         with:
@@ -371,3 +371,29 @@ jobs:
             reports/trivy/consolidated-report.json
             reports/trivy/defectdojo-import.sh
           if-no-files-found: error
+# PBI 26 - coleta os artefatos e relatorios de seguranca gerados pelas 
+# ferramentas  SCA SAST Secret e DAST e simula o envio centralizado para a
+# API do defect dojo usando as credenciais configuradas 
+  defectdojo-upload:
+    name: "PBI-26: Integrar com DefectDojo"
+    runs-on: ubuntu-latest
+    needs: [validate-reports, dast-governance, consolidate-reports]
+    if: always()
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Coletar todos os relatórios gerados
+        uses: actions/download-artifact@v4
+        with:
+          path: fetched-reports/
+
+      - name: Executar Upload para o DefectDojo
+        env:
+          DEFECTDOJO_URL: ${{ vars.DEFECTDOJO_URL }}
+          DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+        run: |
+          echo "Conectando na URL: $DEFECTDOJO_URL"
+          echo "Simulando autenticação e mapeamento dos relatórios..."
+          echo "Gitleaks, Semgrep, Trivy e ZAP mapeados com sucesso."
+          echo "Pronto para receber as credenciais reais da PBI-27!"
