@@ -371,11 +371,11 @@ jobs:
             reports/trivy/consolidated-report.json
             reports/trivy/defectdojo-import.sh
           if-no-files-found: error
-# PBI 26 - coleta os artefatos e relatorios de seguranca gerados pelas 
-# ferramentas  SCA SAST Secret e DAST e simula o envio centralizado para a
-# API do defect dojo usando as credenciais configuradas 
+# PBI-26 + PBI-28: Coleta os artefatos e relatórios de segurança gerados pelas
+# ferramentas SCA, SAST, Secret e DAST, valida compatibilidade e realiza
+# importação organizada por ferramenta no DefectDojo.
   defectdojo-upload:
-    name: "PBI-26: Integrar com DefectDojo"
+    name: "PBI-28: Importar Semgrep e GitLeaks no DefectDojo"
     runs-on: ubuntu-latest
     needs: [validate-reports, dast-governance, consolidate-reports]
     if: always()
@@ -383,17 +383,101 @@ jobs:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
 
-      - name: Coletar todos os relatórios gerados
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependências
+        run: npm install
+
+      # ── Coleta de artefatos por ferramenta ──
+      - name: Download relatório Semgrep
         uses: actions/download-artifact@v4
         with:
-          path: fetched-reports/
+          name: semgrep-report
+          path: reports/semgrep/
+        continue-on-error: true
 
-      - name: Executar Upload para o DefectDojo
+      - name: Download relatório GitLeaks
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-report
+          path: reports/gitleaks/
+        continue-on-error: true
+
+      - name: Download relatório Trivy FS
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Download relatório Trivy Image
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-image-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Download relatórios OWASP ZAP
+        uses: actions/download-artifact@v4
+        with:
+          name: owasp-zap-reports
+          path: reports/zap/
+        continue-on-error: true
+
+      - name: Download relatório de governança DAST
+        uses: actions/download-artifact@v4
+        with:
+          name: dast-governance-report
+          path: reports/zap/
+        continue-on-error: true
+
+      # ── PBI-28 / Task 139: Validar compatibilidade ──
+      - name: "PBI-28: Validar compatibilidade dos relatórios com DefectDojo"
+        run: |
+          chmod +x scripts/validate-defectdojo-compatibility.sh
+          bash scripts/validate-defectdojo-compatibility.sh
+
+      # ── PBI-28 / Task 141: Validar findings ──
+      - name: "PBI-28: Validar findings Semgrep e GitLeaks"
+        run: node scripts/validate-findings.js
+
+      # ── PBI-28 / Task 140+142: Importação organizada por ferramenta ──
+      - name: "PBI-28: Importar Semgrep e GitLeaks no DefectDojo"
         env:
           DEFECTDOJO_URL: ${{ vars.DEFECTDOJO_URL }}
           DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+          ENGAGEMENT_ID: ${{ vars.DEFECTDOJO_ENGAGEMENT_ID }}
         run: |
-          echo "Conectando na URL: $DEFECTDOJO_URL"
-          echo "Simulando autenticação e mapeamento dos relatórios..."
-          echo "Gitleaks, Semgrep, Trivy e ZAP mapeados com sucesso."
-          echo "Pronto para receber as credenciais reais da PBI-27!"
+          echo "══════════════════════════════════════════════════════════════"
+          echo "  PBI-28 │ Upload para DefectDojo (organizado por ferramenta)"
+          echo "══════════════════════════════════════════════════════════════"
+
+          if [ -z "$DEFECTDOJO_URL" ] || [ -z "$DEFECTDOJO_TOKEN" ]; then
+            echo "⚠️  Credenciais DefectDojo não configuradas."
+            echo "   Configure DEFECTDOJO_URL, DEFECTDOJO_TOKEN e DEFECTDOJO_ENGAGEMENT_ID"
+            echo "   nas variáveis/secrets do repositório para ativar a importação real."
+            echo ""
+            echo "── Simulação de importação por ferramenta ──"
+            echo "  1. [SAST]   Semgrep  → scan_type: Semgrep JSON Report  ✅ Mapeado"
+            echo "  2. [Secret] GitLeaks → scan_type: Gitleaks Scan        ✅ Mapeado"
+            echo "  3. [SCA]    Trivy FS → scan_type: Trivy Scan           ✅ Mapeado"
+            echo "  4. [SCA]    Trivy Img→ scan_type: Trivy Scan           ✅ Mapeado"
+            echo "  5. [DAST]   ZAP      → scan_type: ZAP Scan            ✅ Mapeado"
+            echo "══════════════════════════════════════════════════════════════"
+            exit 0
+          fi
+
+          chmod +x scripts/import-semgrep-gitleaks-defectdojo.sh
+          bash scripts/import-semgrep-gitleaks-defectdojo.sh
+
+      # ── Upload dos relatórios de validação como artefatos ──
+      - name: Upload relatórios de validação PBI-28
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: defectdojo-validation-reports
+          path: reports/defectdojo/
+          retention-days: 30
