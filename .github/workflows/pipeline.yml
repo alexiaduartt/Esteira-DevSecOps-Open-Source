@@ -449,13 +449,13 @@ jobs:
         env:
           DEFECTDOJO_URL: ${{ vars.DEFECTDOJO_URL }}
           DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
-          ENGAGEMENT_ID: ${{ vars.DEFECTDOJO_ENGAGEMENT_ID }}
+          ENGAGEMENT_ID: ${{ vars.DEFECTDOJO_ENGAGEMENT_ID || secrets.DEFECTDOJO_ENGAGEMENT_ID }}
         run: |
           echo "══════════════════════════════════════════════════════════════"
           echo "  PBI-28 │ Upload para DefectDojo (organizado por ferramenta)"
           echo "══════════════════════════════════════════════════════════════"
 
-          if [ -z "$DEFECTDOJO_URL" ] || [ -z "$DEFECTDOJO_TOKEN" ]; then
+          if [ -z "$DEFECTDOJO_URL" ] || [ -z "$DEFECTDOJO_TOKEN" ] || [ -z "$ENGAGEMENT_ID" ]; then
             echo "⚠️  Credenciais DefectDojo não configuradas."
             echo "   Configure DEFECTDOJO_URL, DEFECTDOJO_TOKEN e DEFECTDOJO_ENGAGEMENT_ID"
             echo "   nas variáveis/secrets do repositório para ativar a importação real."
