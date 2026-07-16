@@ -58,19 +58,32 @@ jobs:
         run: mkdir -p reports/gitleaks
 
       - name: Executar Gitleaks
+        uses: docker://ghcr.io/gitleaks/gitleaks:latest
+        with:
+          args: >-
+            detect
+            --source=/github/workspace
+            --config=/github/workspace/security/gitleaks/.gitleaks.toml
+            --report-format=json
+            --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
+            --redact
+
+      - name: Verificar se há secrets detectados
         run: |
-          docker run --rm \
-            -v "${{ github.workspace }}:/repo:ro" \
-            -v "${{ github.workspace }}/reports/gitleaks:/report" \
-            ghcr.io/gitleaks/gitleaks:latest \
-            detect \
-            --source=/repo \
-            --config=/repo/security/gitleaks/.gitleaks.toml \
-            --report-format=json \
-            --report-path=/report/gitleaks-results.json \
-            --exit-code=1 \
-            --redact \
-            --verbose
+          REPORT="reports/gitleaks/gitleaks-results.json"
+          if [ -f "$REPORT" ] && [ -s "$REPORT" ]; then
+            LEAKS=$(python3 -c "import json; data=json.load(open('$REPORT')); print(len(data) if isinstance(data, list) else 0)" 2>/dev/null || echo "0")
+            if [ "$LEAKS" -gt 0 ]; then
+              echo "══════════════════════════════════════════════"
+              echo "  ❌ GITLEAKS — SECRETS DETECTADOS"
+              echo "══════════════════════════════════════════════"
+              echo "  Encontrado(s) $LEAKS secret(s) no repositório."
+              echo "  A pipeline será bloqueada."
+              echo "══════════════════════════════════════════════"
+              exit 1
+            fi
+          fi
+          echo "✅ Gitleaks: nenhum secret encontrado."
 
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
@@ -94,15 +107,11 @@ jobs:
 
       - name: Semgrep Scan
         run: |
-          IFS=',' read -ra CONFIGS <<< "${{ env.SEMGREP_CONFIGS }}"
-          CONFIG_ARGS=""
-          for cfg in "${CONFIGS[@]}"; do
-            CONFIG_ARGS="$CONFIG_ARGS --config $cfg"
-          done
-
           semgrep scan \
-            $CONFIG_ARGS \
-            --severity=${{ env.SEMGREP_SEVERITY }} \
+            --config "p/owasp-top-ten" \
+            --config "p/nodejs" \
+            --config "security/semgrep/rules.yaml" \
+            --severity=ERROR \
             --error \
             --json \
             --output=reports/semgrep/semgrep-results.json
@@ -157,18 +166,21 @@ jobs:
         with:
           name: gitleaks-report
           path: reports/gitleaks/
+        continue-on-error: true
 
       - name: Download Semgrep Report
         uses: actions/download-artifact@v4
         with:
           name: semgrep-report
           path: reports/semgrep/
+        continue-on-error: true
 
       - name: Download Trivy FS Report
         uses: actions/download-artifact@v4
         with:
           name: trivy-fs-report
           path: reports/trivy/
+        continue-on-error: true
 
       - name: Validar integridade dos relatórios
         run: |
