@@ -21,3 +21,9 @@ docs/
 *.example
 *.sample
 *.min.js
+
+# infraestrutura local — senhas hardcoded intencionais para ambiente de desenvolvimento
+docker-compose.defectdojo.yml
+
+# ambientes virtuais python
+venv*/
