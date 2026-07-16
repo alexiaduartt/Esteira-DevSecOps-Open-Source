@@ -61,3 +61,4 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;// teste de pipeline
+eval(process.env.USER_INPUT)
