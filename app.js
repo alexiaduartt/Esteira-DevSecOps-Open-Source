@@ -51,8 +51,8 @@ app.get('/health', (req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
     // O erro real fica registrado apenas no terminal do servidor
-    console.error('[ERRO INTERNO]:', err.message); 
-    
+    console.error('[ERRO INTERNO]:', err.message);
+
     // O usuario recebe apenas uma mensagem generica de seguranca
     res.status(500).json({
         error: 'Internal Server Error',
@@ -60,5 +60,4 @@ app.use((err, req, res, next) => {
     });
 });
 
-module.exports = app;// teste de pipeline
-eval(process.env.USER_INPUT)
+module.exports = app;
