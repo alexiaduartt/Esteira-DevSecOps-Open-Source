@@ -10,9 +10,19 @@ on:
 permissions:
   contents: read
 
+# =============================================================================
+# Variáveis parametrizáveis — altere aqui para adaptar a esteira ao seu projeto
+# =============================================================================
 env:
   IMAGE_NAME: esteira-devsecops-open-source
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  APP_PORT: "3000"
+  APP_HEALTH_ENDPOINT: "/health"
+  NODE_VERSION: "20"
+  TRIVY_SEVERITY: "HIGH,CRITICAL"
+  SEMGREP_SEVERITY: "ERROR"
+  ZAP_TARGET: "http://localhost:3000"
+  SEMGREP_CONFIGS: "p/owasp-top-ten,p/nodejs,security/semgrep/rules.yaml"
 
 jobs:
   checkout-node:
@@ -25,10 +35,11 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       - name: Executar lint
         run: npm run lint
@@ -47,16 +58,19 @@ jobs:
         run: mkdir -p reports/gitleaks
 
       - name: Executar Gitleaks
-        uses: docker://ghcr.io/gitleaks/gitleaks:latest
-        with:
-          args: >-
-            detect
-            --source=/github/workspace
-            --config=/github/workspace/security/gitleaks/.gitleaks.toml
-            --report-format=json
-            --report-path=/github/workspace/reports/gitleaks/gitleaks-results.json
-            --exit-code=1
-            --redact
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/repo:ro" \
+            -v "${{ github.workspace }}/reports/gitleaks:/report" \
+            ghcr.io/gitleaks/gitleaks:latest \
+            detect \
+            --source=/repo \
+            --config=/repo/security/gitleaks/.gitleaks.toml \
+            --report-format=json \
+            --report-path=/report/gitleaks-results.json \
+            --exit-code=1 \
+            --redact \
+            --verbose
 
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
@@ -80,11 +94,15 @@ jobs:
 
       - name: Semgrep Scan
         run: |
+          IFS=',' read -ra CONFIGS <<< "${{ env.SEMGREP_CONFIGS }}"
+          CONFIG_ARGS=""
+          for cfg in "${CONFIGS[@]}"; do
+            CONFIG_ARGS="$CONFIG_ARGS --config $cfg"
+          done
+
           semgrep scan \
-            --config "p/owasp-top-ten" \
-            --config "p/nodejs" \
-            --config "security/semgrep/rules.yaml" \
-            --severity=ERROR \
+            $CONFIG_ARGS \
+            --severity=${{ env.SEMGREP_SEVERITY }} \
             --error \
             --json \
             --output=reports/semgrep/semgrep-results.json
@@ -115,7 +133,7 @@ jobs:
           scan-ref: "."
           format: "json"
           output: "reports/trivy/trivy-fs-results.json"
-          severity: "HIGH,CRITICAL"
+          severity: ${{ env.TRIVY_SEVERITY }}
           exit-code: "1"
 
       - name: Upload Trivy FS Report
@@ -266,7 +284,7 @@ jobs:
           trivyignores: ".trivyignore"
           format: "json"
           output: "reports/trivy/trivy-image-results.json"
-          severity: "HIGH,CRITICAL"
+          severity: ${{ env.TRIVY_SEVERITY }}
           exit-code: "1"
 
       - name: Upload Trivy Image Report
@@ -293,12 +311,14 @@ jobs:
         run: docker compose up -d --build
 
       - name: Aguardar o healthcheck
-        run: npx wait-on http://localhost:3000/health || sleep 15
+        run: |
+          echo "Aguardando aplicação em ${{ env.ZAP_TARGET }}${{ env.APP_HEALTH_ENDPOINT }}..."
+          npx wait-on ${{ env.ZAP_TARGET }}${{ env.APP_HEALTH_ENDPOINT }} --timeout 30000 || sleep 15
 
       - name: Executar OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: "http://localhost:3000"
+          target: ${{ env.ZAP_TARGET }}
           rules_file_name: "security/zap/zap-rules.tsv"
           fail_action: false
 
@@ -326,10 +346,11 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       - name: Baixar relatório do ZAP
         uses: actions/download-artifact@v4
@@ -410,10 +431,11 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       # Coleta dos artifacts por ferramenta.
       - name: Download relatório Semgrep
@@ -520,3 +542,47 @@ jobs:
           name: defectdojo-validation-reports
           path: reports/defectdojo/
           retention-days: 30
+
+  # =============================================================================
+  # Notificação de falha — alerta quando qualquer job de segurança falhar
+  # =============================================================================
+  notify-on-failure:
+    name: Notificar Falha de Segurança
+    runs-on: ubuntu-latest
+    needs: [gitleaks, semgrep, trivy-fs, trivy-image, dast-governance, defectdojo-upload]
+    if: failure()
+    steps:
+      - name: Resumo da falha
+        run: |
+          echo "══════════════════════════════════════════════"
+          echo "  ❌ PIPELINE DEVSECOPS — FALHA DETECTADA"
+          echo "══════════════════════════════════════════════"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Branch: ${{ github.ref_name }}"
+          echo "  Autor:  ${{ github.actor }}"
+          echo "  Run:    ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "══════════════════════════════════════════════"
+          echo ""
+          echo "  Verifique os jobs de segurança para detalhes."
+          echo "  A pipeline foi bloqueada por uma ou mais"
+          echo "  verificações de segurança."
+          echo "══════════════════════════════════════════════"
+
+      # Descomente e configure o webhook para receber alertas no Slack/Discord:
+      #
+      # - name: Enviar alerta para Slack
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: failure
+      #     fields: repo,message,commit,author,workflow,job
+      #     text: "⚠️ Pipeline DevSecOps FALHOU — verificar vulnerabilidades"
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #
+      # - name: Enviar alerta para Discord
+      #   uses: sarisia/actions-status-discord@v1
+      #   with:
+      #     webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      #     title: "Pipeline DevSecOps — Falha de Segurança"
+      #     description: "Uma ou mais verificações de segurança falharam."
+      #     color: 0xff0000
