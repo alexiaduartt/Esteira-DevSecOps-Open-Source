@@ -1,6 +1,0 @@
-# PBI-17: Ignora falha nativa do pacote picomatch embutido no npm do Node 22-alpine
-CVE-2026-33671
-CVE-2026-33672
-
-# PBI-26: Ignora falha nativa do pacote undici embutido no npm do Node
-CVE-2026-12151
