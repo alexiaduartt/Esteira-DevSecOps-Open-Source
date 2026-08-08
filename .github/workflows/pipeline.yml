@@ -7,12 +7,14 @@ on:
     branches: ["main", "develop"]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
-# =============================================================================
-# Variáveis parametrizáveis — altere aqui para adaptar a esteira ao seu projeto
-# =============================================================================
+# Configurações gerais da esteira.
 env:
   IMAGE_NAME: esteira-devsecops-open-source
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -26,8 +28,11 @@ env:
 
 jobs:
   checkout-node:
-    name: Checkout e configuração do Node.js
+    name: Checkout, lint e testes do Node.js
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -44,10 +49,16 @@ jobs:
       - name: Executar lint
         run: npm run lint
 
+      - name: Executar testes automatizados
+        run: npm test
+
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
     needs: checkout-node
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,19 +82,19 @@ jobs:
       - name: Verificar se há secrets detectados
         run: |
           REPORT="reports/gitleaks/gitleaks-results.json"
+
           if [ -f "$REPORT" ] && [ -s "$REPORT" ]; then
             LEAKS=$(python3 -c "import json; data=json.load(open('$REPORT')); print(len(data) if isinstance(data, list) else 0)" 2>/dev/null || echo "0")
+
             if [ "$LEAKS" -gt 0 ]; then
-              echo "══════════════════════════════════════════════"
-              echo "  ❌ GITLEAKS — SECRETS DETECTADOS"
-              echo "══════════════════════════════════════════════"
-              echo "  Encontrado(s) $LEAKS secret(s) no repositório."
-              echo "  A pipeline será bloqueada."
-              echo "══════════════════════════════════════════════"
+              echo "[ERROR] [Gitleaks] Secrets detectados no repositório."
+              echo "        findings=$LEAKS"
+              echo "[ERROR] [Gitleaks] A pipeline será bloqueada."
               exit 1
             fi
           fi
-          echo "✅ Gitleaks: nenhum secret encontrado."
+
+          echo "[OK] [Gitleaks] Nenhum secret encontrado."
 
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
@@ -96,6 +107,9 @@ jobs:
     name: Semgrep Scan
     runs-on: ubuntu-latest
     needs: checkout-node
+    timeout-minutes: 20
+    permissions:
+      contents: read
     container:
       image: semgrep/semgrep
     steps:
@@ -128,6 +142,9 @@ jobs:
     name: Trivy FS Scan
     runs-on: ubuntu-latest
     needs: checkout-node
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -157,6 +174,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [gitleaks, semgrep, trivy-fs]
     if: always()
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -192,6 +212,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [gitleaks, semgrep, trivy-fs, validate-reports]
     if: success()
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -220,7 +243,7 @@ jobs:
 
       - name: Validar imagem Docker gerada
         run: |
-          docker images | grep $IMAGE_NAME
+          docker images | grep "$IMAGE_NAME"
           echo "Imagem Docker gerada com sucesso."
 
       - name: Criar diretório para SBOM
@@ -274,15 +297,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-build
     if: success()
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
 
-      - name: Construir imagem Docker para Análise
+      - name: Construir imagem Docker para análise
         run: |
           docker build \
             --file Dockerfile \
-            --tag $IMAGE_NAME:${{ github.sha }} \
+            --tag "$IMAGE_NAME:${{ github.sha }}" \
             .
 
       - name: Criar pasta de relatório do Trivy Image
@@ -311,6 +337,7 @@ jobs:
     name: Executar DAST com OWASP ZAP
     needs: docker-build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       issues: write
@@ -340,7 +367,7 @@ jobs:
           mv report_html.html reports/zap/ 2>/dev/null || true
           mv report_json.json reports/zap/ 2>/dev/null || true
 
-      - name: Upload dos Relatórios ZAP
+      - name: Upload dos relatórios ZAP
         uses: actions/upload-artifact@v4
         with:
           name: owasp-zap-reports
@@ -351,6 +378,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: dast-zap
     continue-on-error: false
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -389,6 +419,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [trivy-fs, trivy-image]
     if: always()
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -436,6 +469,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-reports, dast-governance, consolidate-reports]
     if: always()
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -523,6 +559,18 @@ jobs:
           DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
           ENGAGEMENT_ID: ${{ vars.DEFECTDOJO_ENGAGEMENT_ID || secrets.DEFECTDOJO_ENGAGEMENT_ID }}
         run: |
+          if [ -n "${DEFECTDOJO_URL:-}" ]; then
+            echo "::add-mask::$DEFECTDOJO_URL"
+          fi
+
+          if [ -n "${DEFECTDOJO_TOKEN:-}" ]; then
+            echo "::add-mask::$DEFECTDOJO_TOKEN"
+          fi
+
+          if [ -n "${ENGAGEMENT_ID:-}" ]; then
+            echo "::add-mask::$ENGAGEMENT_ID"
+          fi
+
           chmod +x scripts/import-semgrep-gitleaks-defectdojo.sh
           chmod +x scripts/import-trivy-zap-defectdojo.sh
 
@@ -556,13 +604,27 @@ jobs:
           retention-days: 30
 
   # =============================================================================
-  # Notificação de falha — alerta quando qualquer job de segurança falhar
+  # Notificação de falha — alerta quando qualquer job de segurança falhar.
   # =============================================================================
   notify-on-failure:
     name: Notificar Falha de Segurança
     runs-on: ubuntu-latest
-    needs: [gitleaks, semgrep, trivy-fs, trivy-image, dast-governance, defectdojo-upload]
+    needs:
+      - checkout-node
+      - gitleaks
+      - semgrep
+      - trivy-fs
+      - validate-reports
+      - docker-build
+      - trivy-image
+      - dast-zap
+      - dast-governance
+      - consolidate-reports
+      - defectdojo-upload
     if: failure()
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - name: Resumo da falha
         env:
@@ -571,19 +633,12 @@ jobs:
           ACTOR: ${{ github.actor }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "══════════════════════════════════════════════"
-          echo "  ❌ PIPELINE DEVSECOPS — FALHA DETECTADA"
-          echo "══════════════════════════════════════════════"
-          echo "  Commit: $COMMIT_SHA"
-          echo "  Branch: $BRANCH_NAME"
-          echo "  Autor:  $ACTOR"
-          echo "  Run:    $RUN_URL"
-          echo "══════════════════════════════════════════════"
-          echo ""
-          echo "  Verifique os jobs de segurança para detalhes."
-          echo "  A pipeline foi bloqueada por uma ou mais"
-          echo "  verificações de segurança."
-          echo "══════════════════════════════════════════════"
+          echo "[ERROR] [Pipeline] Falha detectada na esteira DevSecOps."
+          echo "        commit=$COMMIT_SHA"
+          echo "        branch=$BRANCH_NAME"
+          echo "        actor=$ACTOR"
+          echo "        run=$RUN_URL"
+          echo "[INFO] [Pipeline] Verifique os jobs de segurança para detalhes."
 
       # Descomente e configure o webhook para receber alertas no Slack/Discord:
       #
@@ -592,7 +647,7 @@ jobs:
       #   with:
       #     status: failure
       #     fields: repo,message,commit,author,workflow,job
-      #     text: "⚠️ Pipeline DevSecOps FALHOU — verificar vulnerabilidades"
+      #     text: "Pipeline DevSecOps falhou. Verificar vulnerabilidades."
       #   env:
       #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       #
