@@ -172,6 +172,10 @@ def main():
     print("=== PBI-20: Consolidação de Relatórios SCA ===")
     print()
 
+    # Garante que a pasta reports/trivy exista logo no início
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+
+
     # Task #100 — Carregar relatórios
     print("[Task #100] Carregando relatórios...")
     fs_data = load_json(FS_REPORT)
