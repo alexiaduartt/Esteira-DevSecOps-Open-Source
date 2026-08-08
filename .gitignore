@@ -1,4 +1,14 @@
 node_modules/
 .env
 desktop.ini
-reports/*venv-semgrep/
+reports/
+venv-semgrep/
+
+# Relatórios e artefatos de scans locais/CI
+*.sarif
+trivy_resultado.txt
+
+# Logs e caches
+*.log
+.cache/
+coverage/
