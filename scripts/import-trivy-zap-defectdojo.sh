@@ -4,6 +4,7 @@ set -euo pipefail
 
 # Importa relatórios do Trivy, CycloneDX e OWASP ZAP no DefectDojo
 # por meio da API REST de importação de scans.
+# O script evita imprimir valores sensíveis nos logs e suporta modo de simulação.
 
 DEFECTDOJO_URL="${DEFECTDOJO_URL:-}"
 DEFECTDOJO_TOKEN="${DEFECTDOJO_TOKEN:-}"
@@ -41,6 +42,64 @@ log_detail() {
   printf '       %s\n' "$message"
 }
 
+json_escape() {
+  local value="${1:-}"
+
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/ }"
+  value="${value//$'\r'/ }"
+
+  printf '%s' "$value"
+}
+
+write_log() {
+  local component="$1"
+  local status="$2"
+  local scan_type="$3"
+  local file_path="$4"
+  local http_code="${5:-}"
+  local details="${6:-}"
+  local timestamp
+
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  printf '{"timestamp":"%s","component":"%s","status":"%s","scan_type":"%s","file":"%s"' \
+    "$(json_escape "$timestamp")" \
+    "$(json_escape "$component")" \
+    "$(json_escape "$status")" \
+    "$(json_escape "$scan_type")" \
+    "$(json_escape "$file_path")" >> "$IMPORT_LOG"
+
+  if [[ -n "$http_code" ]]; then
+    printf ',"http_code":"%s"' "$(json_escape "$http_code")" >> "$IMPORT_LOG"
+  fi
+
+  if [[ -n "$details" ]]; then
+    printf ',"details":"%s"' "$(json_escape "$details")" >> "$IMPORT_LOG"
+  fi
+
+  printf '}\n' >> "$IMPORT_LOG"
+}
+
+mask_sensitive_values() {
+  if [[ "${GITHUB_ACTIONS:-false}" != "true" ]]; then
+    return 0
+  fi
+
+  if [[ -n "$DEFECTDOJO_URL" ]]; then
+    echo "::add-mask::$DEFECTDOJO_URL"
+  fi
+
+  if [[ -n "$DEFECTDOJO_TOKEN" ]]; then
+    echo "::add-mask::$DEFECTDOJO_TOKEN"
+  fi
+
+  if [[ -n "$ENGAGEMENT_ID" ]]; then
+    echo "::add-mask::$ENGAGEMENT_ID"
+  fi
+}
+
 show_help() {
   cat <<'EOF'
 Uso:
@@ -63,14 +122,6 @@ EOF
 }
 
 validate_dependencies() {
-  if ! command -v node > /dev/null 2>&1; then
-    log "ERROR" "Dependências" \
-      "O Node.js não está disponível no ambiente de execução."
-
-    log_detail "Configure o Node.js antes de executar o script."
-    exit 1
-  fi
-
   if [[ "$DRY_RUN" == "false" ]] && ! command -v curl > /dev/null 2>&1; then
     log "ERROR" "Dependências" \
       "O cURL não está disponível no ambiente de execução."
@@ -113,44 +164,6 @@ validate_environment() {
 
     exit 1
   fi
-}
-
-write_log() {
-  local component="$1"
-  local status="$2"
-  local scan_type="$3"
-  local file_path="$4"
-  local http_code="${5:-}"
-  local details="${6:-}"
-
-  COMPONENT="$component" \
-  STATUS="$status" \
-  SCAN_TYPE="$scan_type" \
-  FILE_PATH="$file_path" \
-  HTTP_CODE="$http_code" \
-  DETAILS="$details" \
-  node <<'NODE' >> "$IMPORT_LOG"
-const entry = {
-  timestamp: new Date().toISOString(),
-  component: process.env.COMPONENT,
-  status: process.env.STATUS,
-  scan_type: process.env.SCAN_TYPE,
-  file: process.env.FILE_PATH,
-};
-
-const httpCode = process.env.HTTP_CODE;
-const details = process.env.DETAILS;
-
-if (httpCode) {
-  entry.http_code = httpCode;
-}
-
-if (details) {
-  entry.details = details;
-}
-
-process.stdout.write(`${JSON.stringify(entry)}\n`);
-NODE
 }
 
 import_scan() {
@@ -220,12 +233,18 @@ import_scan() {
   log_detail "path=$report_file"
   log_detail "scan_type=$scan_type"
   log_detail "size_bytes=$file_size"
-  log_detail "engagement_id=$ENGAGEMENT_ID"
+  log_detail "engagement_id=configured"
 
   local response_file
+  local error_file
+
   response_file=$(mktemp)
+  error_file=$(mktemp)
 
   local http_code
+  local curl_exit
+
+  set +e
   http_code=$(curl \
     --silent \
     --show-error \
@@ -242,12 +261,37 @@ import_scan() {
     --form "close_old_findings=false" \
     --form "minimum_severity=Info" \
     --form "test_title=${test_title}" \
-    || true)
+    2> "$error_file")
+  curl_exit=$?
+  set -e
 
-  local response_body
-  response_body=$(cat "$response_file")
+  local response_size
+  local error_size
 
-  rm -f "$response_file"
+  response_size=$(wc -c < "$response_file" | tr -d '[:space:]')
+  error_size=$(wc -c < "$error_file" | tr -d '[:space:]')
+
+  rm -f "$response_file" "$error_file"
+
+  if [[ "$curl_exit" -ne 0 ]]; then
+    log "ERROR" "$component" \
+      "Falha de comunicação com a API do DefectDojo."
+
+    log_detail "curl_exit=$curl_exit"
+    log_detail "response_body_bytes=$response_size"
+    log_detail "stderr_bytes=$error_size"
+
+    write_log \
+      "$component" \
+      "failed" \
+      "$scan_type" \
+      "$report_file" \
+      "${http_code:-unknown}" \
+      "curl_exit=$curl_exit response_body_bytes=$response_size stderr_bytes=$error_size"
+
+    IMPORT_ERRORS=$((IMPORT_ERRORS + 1))
+    return 0
+  fi
 
   if [[ "$http_code" =~ ^2[0-9][0-9]$ ]]; then
     log "OK" "$component" \
@@ -270,10 +314,7 @@ import_scan() {
     "A API do DefectDojo rejeitou a importação."
 
   log_detail "http_status=${http_code:-unknown}"
-
-  if [[ -n "$response_body" ]]; then
-    log_detail "response=$response_body"
-  fi
+  log_detail "response_body_bytes=$response_size"
 
   write_log \
     "$component" \
@@ -281,7 +322,7 @@ import_scan() {
     "$scan_type" \
     "$report_file" \
     "${http_code:-unknown}" \
-    "$response_body"
+    "response_body_bytes=$response_size"
 
   IMPORT_ERRORS=$((IMPORT_ERRORS + 1))
 }
@@ -303,6 +344,7 @@ case "${1:-}" in
     ;;
 esac
 
+mask_sensitive_values
 validate_dependencies
 validate_environment
 
