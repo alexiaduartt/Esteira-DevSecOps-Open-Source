@@ -1,19 +1,17 @@
 const request = require('supertest');
-const app = require('./app'); // Isso puxa o seu app.js da imagem anterior
+const app = require('./app');
 
 describe('Suite de Testes da PBI-07', () => {
-    
+
     test('Task 1: Criar teste específico para rota /health', async () => {
         const response = await request(app).get('/health');
-        
-        // Validações baseadas no seu app.js
+
         expect(response.statusCode).toBe(200);
         expect(response.body.status).toBe('UP');
     });
 
 });
 
-// PBI-22: Testes de integração para validar a aplicação no contexto do teste dinâmico (DAST/ZAP)
 describe('Suite de Testes da PBI-22 - Preparar aplicação para teste dinâmico', () => {
 
     test('GET /health deve retornar status HTTP 200', async () => {
@@ -40,9 +38,6 @@ describe('Suite de Testes da PBI-22 - Preparar aplicação para teste dinâmico'
 
 });
 
-// =============================================================================
-// Testes de Segurança — Validação de headers e comportamento seguro
-// =============================================================================
 describe('Testes de Segurança — Headers e configurações (Helmet)', () => {
 
     test('não deve expor o header X-Powered-By', async () => {
@@ -57,7 +52,6 @@ describe('Testes de Segurança — Headers e configurações (Helmet)', () => {
 
     test('deve incluir header X-Frame-Options para proteção contra Clickjacking', async () => {
         const response = await request(app).get('/');
-        // Helmet define SAMEORIGIN por padrão
         expect(response.headers['x-frame-options']).toBeDefined();
     });
 
@@ -77,7 +71,6 @@ describe('Testes de Segurança — Tratamento de erros', () => {
 
     test('rotas inexistentes devem retornar 404, não 500', async () => {
         const response = await request(app).get('/rota-que-nao-existe');
-        // Express retorna 404 por padrão para rotas não definidas
         expect(response.statusCode).toBe(404);
     });
 
@@ -92,19 +85,37 @@ describe('Testes de Segurança — Tratamento de erros', () => {
 
 describe('Testes de Segurança — CORS', () => {
 
-    test('deve incluir headers de CORS na resposta', async () => {
+    test('deve liberar CORS para origem permitida', async () => {
+        const response = await request(app)
+            .get('/')
+            .set('Origin', 'http://localhost:3000');
+
+        expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    });
+
+    test('não deve liberar CORS para origem não autorizada', async () => {
         const response = await request(app)
             .get('/')
             .set('Origin', 'http://example.com');
-        expect(response.headers['access-control-allow-origin']).toBeDefined();
+
+        expect(response.headers['access-control-allow-origin']).toBeUndefined();
     });
 
-    test('deve aceitar apenas métodos HTTP permitidos', async () => {
+    test('deve aceitar requisições sem Origin para health check e DAST local', async () => {
+        const response = await request(app).get('/health');
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.status).toBe('UP');
+    });
+
+    test('deve aceitar apenas métodos HTTP permitidos no preflight', async () => {
         const response = await request(app)
             .options('/')
-            .set('Origin', 'http://example.com')
+            .set('Origin', 'http://localhost:3000')
             .set('Access-Control-Request-Method', 'GET');
+
         expect(response.statusCode).toBeLessThan(400);
+        expect(response.headers['access-control-allow-methods']).toContain('GET');
     });
 
 });
@@ -114,7 +125,7 @@ describe('Testes Funcionais — Conteúdo das respostas', () => {
     test('GET /health deve conter campo timestamp em formato ISO', async () => {
         const response = await request(app).get('/health');
         expect(response.body).toHaveProperty('timestamp');
-        // Valida que é um ISO 8601 válido
+
         const date = new Date(response.body.timestamp);
         expect(date.toISOString()).toBe(response.body.timestamp);
     });
