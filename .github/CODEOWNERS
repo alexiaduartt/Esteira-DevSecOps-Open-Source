@@ -1,0 +1,29 @@
+# =============================================================================
+# CODEOWNERS — Define revisores obrigatórios por área do repositório
+# =============================================================================
+# Documentação: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Formato: [caminho]   @usuario-ou-time
+# Os owners listados serão automaticamente adicionados como revisores
+# em Pull Requests que alterem arquivos nos caminhos indicados.
+# =============================================================================
+
+# Pipeline e CI/CD — alterações na esteira precisam de revisão
+.github/workflows/                @alexiaduartt
+
+# Configurações de segurança — regras, políticas e ignore files
+security/                         @alexiaduartt
+.gitleaks.toml                    @alexiaduartt
+.semgrepignore                    @alexiaduartt
+.trivyignore                      @alexiaduartt
+
+# Scripts de governança e validação
+scripts/                          @alexiaduartt
+
+# Dockerfile e configurações de container
+Dockerfile                        @alexiaduartt
+docker-compose*.yml               @alexiaduartt
+
+# Configuração do projeto
+package.json                      @alexiaduartt
+eslint.config.mjs                 @alexiaduartt

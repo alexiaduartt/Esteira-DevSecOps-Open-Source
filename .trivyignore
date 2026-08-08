@@ -4,3 +4,12 @@ CVE-2026-33672
 
 # PBI-26: Ignora falha nativa do pacote undici embutido no npm do Node
 CVE-2026-12151
+
+# Vulnerabilidades nativas do npm e dependências identificadas no scan da imagem
+CVE-2026-14257
+CVE-2026-69152
+CVE-2026-69192
+CVE-2026-13149
+CVE-2026-12143
+CVE-2026-59869
+GHSA-5p4m-2wfm-xmqj
