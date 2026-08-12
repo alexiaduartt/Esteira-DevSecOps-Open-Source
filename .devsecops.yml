@@ -43,13 +43,21 @@ security:
     rules_file: "security/zap/zap-rules.tsv"
     fail_action: false
 
-# --- Quality Gates ---
+# --- Quality Gates (PBI-59: Validação Integrada) ---
 quality_gates:
   block_on_severity:
     - "HIGH"
     - "CRITICAL"
   block_on_secrets: true
   policy_file: "security/policies/dependency-severity-policy.md"
+  # PBI-59 — Scripts de validação integrada
+  scripts:
+    quality_gate: "scripts/quality-gate.js"
+    execution_log: "scripts/generate-execution-log.js"
+    simulate_vuln: "scripts/simulate-vulnerability.sh"
+  reports:
+    quality_gate_report: "reports/quality-gate/quality-gate-report.json"
+    execution_log: "reports/quality-gate/execution-log.json"
 
 # --- Integração DefectDojo ---
 defectdojo:

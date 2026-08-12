@@ -1,4 +1,5 @@
 name: Pipeline Base - GitHub Actions
+# PBI-59: Quality Gate integrado com validação unificada
 
 on:
   push:
@@ -207,10 +208,77 @@ jobs:
           chmod +x scripts/validate-reports.sh
           bash scripts/validate-reports.sh
 
+  # =========================================================================
+  # PBI-59 — Quality Gate Integrado
+  # Consolida resultados de SAST, SCA e Secret Scanning.
+  # =========================================================================
+  quality-gate:
+    name: Quality Gate Integrado (PBI-59)
+    runs-on: ubuntu-latest
+    needs: [gitleaks, semgrep, trivy-fs, validate-reports]
+    if: always()
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Download Semgrep Report
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/semgrep/
+        continue-on-error: true
+
+      - name: Download Gitleaks Report
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-report
+          path: reports/gitleaks/
+        continue-on-error: true
+
+      - name: Download Trivy FS Report
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: reports/trivy/
+        continue-on-error: true
+
+      - name: Executar Quality Gate
+        run: node scripts/quality-gate.js
+
+      - name: Gerar Log Unificado de Execução
+        if: always()
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: node scripts/generate-execution-log.js
+
+      - name: Upload Quality Gate Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-report
+          path: |
+            reports/quality-gate/quality-gate-report.json
+            reports/quality-gate/execution-log.json
+          retention-days: 30
+
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: [gitleaks, semgrep, trivy-fs, validate-reports]
+    needs: [gitleaks, semgrep, trivy-fs, validate-reports, quality-gate]
     if: success()
     timeout-minutes: 25
     permissions:
@@ -615,6 +683,7 @@ jobs:
       - semgrep
       - trivy-fs
       - validate-reports
+      - quality-gate
       - docker-build
       - trivy-image
       - dast-zap
