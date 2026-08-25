@@ -37,12 +37,15 @@ jobs:
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Instalar dependências
         run: npm ci
@@ -61,6 +64,8 @@ jobs:
     permissions:
       contents: read
     steps:
+      # Mantém o histórico completo para que o Gitleaks
+      # detecte secrets presentes em commits anteriores.
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -116,6 +121,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Criar pasta de relatório do Semgrep
         run: mkdir -p reports/semgrep
@@ -149,6 +156,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Criar pasta de relatório do Trivy FS
         run: mkdir -p reports/trivy
@@ -181,6 +190,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Download Gitleaks Report
         uses: actions/download-artifact@v4
@@ -278,7 +289,7 @@ jobs:
   docker-build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: [gitleaks, semgrep, trivy-fs, validate-reports, quality-gate]
+    needs: quality-gate
     if: success()
     timeout-minutes: 25
     permissions:
@@ -286,6 +297,8 @@ jobs:
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Validar existência do Dockerfile
         run: |
@@ -360,25 +373,6 @@ jobs:
             reports/trivy/sbom/sbom-metadata.txt
           if-no-files-found: error
 
-  trivy-image:
-    name: Trivy Image Scan
-    runs-on: ubuntu-latest
-    needs: docker-build
-    if: success()
-    timeout-minutes: 25
-    permissions:
-      contents: read
-    steps:
-      - name: Baixar código do repositório
-        uses: actions/checkout@v4
-
-      - name: Construir imagem Docker para análise
-        run: |
-          docker build \
-            --file Dockerfile \
-            --tag "$IMAGE_NAME:${{ github.sha }}" \
-            .
-
       - name: Criar pasta de relatório do Trivy Image
         run: mkdir -p reports/trivy
 
@@ -403,7 +397,7 @@ jobs:
   # Executa a análise dinâmica de segurança com o OWASP ZAP.
   dast-zap:
     name: Executar DAST com OWASP ZAP
-    needs: docker-build
+    needs: validate-reports
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -413,6 +407,8 @@ jobs:
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Subir aplicação para teste
         run: docker compose up -d --build
@@ -452,12 +448,15 @@ jobs:
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Instalar dependências
         run: npm ci
@@ -485,7 +484,7 @@ jobs:
   consolidate-reports:
     name: Consolidar Relatórios SCA
     runs-on: ubuntu-latest
-    needs: [trivy-fs, trivy-image]
+    needs: [trivy-fs, docker-build]
     if: always()
     timeout-minutes: 10
     permissions:
@@ -493,6 +492,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -543,12 +544,15 @@ jobs:
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Instalar dependências
         run: npm ci
@@ -685,7 +689,6 @@ jobs:
       - validate-reports
       - quality-gate
       - docker-build
-      - trivy-image
       - dast-zap
       - dast-governance
       - consolidate-reports
