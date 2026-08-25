@@ -84,3 +84,20 @@ notifications:
   channels:
     # slack_webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
     # discord_webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+# --- PBI-53: Ambiente de Staging ---
+staging:
+  enabled: true
+  registry: "ghcr.io"
+  compose_file: "docker-compose.staging.yml"
+  deploy_branch: "develop"
+  port: 3001
+  health_endpoint: "/health"
+  smoke_test_timeout: 60
+  scripts:
+    deploy: "scripts/deploy-staging.sh"
+    smoke_test: "scripts/smoke-test-staging.sh"
+  # Secrets necessários (configurar no GitHub Settings):
+  #   STAGING_SSH_HOST — IP/hostname do servidor de staging
+  #   STAGING_SSH_USER — Usuário SSH para deploy
+  #   STAGING_SSH_KEY  — Chave privada SSH Ed25519
