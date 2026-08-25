@@ -16,10 +16,7 @@ concurrency:
 permissions:
   contents: read
 
-<<<<<<< HEAD
-=======
 # Configurações gerais da esteira.
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
 env:
   IMAGE_NAME: esteira-devsecops-open-source
 
@@ -27,13 +24,9 @@ jobs:
   checkout-node:
     name: Checkout, lint e testes do Node.js
     runs-on: ubuntu-latest
-<<<<<<< HEAD
-
-=======
     timeout-minutes: 10
     permissions:
       contents: read
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -43,21 +36,9 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-<<<<<<< HEAD
-          node-version: "20"
-
-      - name: Validar versão do Node.js e NPM
-        run: |
-          node --version
-          npm --version
-
-      - name: Listar arquivos do projeto
-        run: ls -la
-=======
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: package-lock.json
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
 
       - name: Instalar dependências
         run: npm install
@@ -65,13 +46,6 @@ jobs:
       - name: Executar lint
         run: npm run lint
 
-<<<<<<< HEAD
-  docker-build:
-    name: Build da imagem Docker
-    runs-on: ubuntu-latest
-    needs: checkout-node
-
-=======
       - name: Executar testes automatizados
         run: npm test
 
@@ -246,7 +220,6 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
     steps:
       - name: Baixar código do repositório
         uses: actions/checkout@v4
@@ -273,10 +246,6 @@ jobs:
 
       - name: Validar imagem Docker gerada
         run: |
-<<<<<<< HEAD
-          docker images | grep $IMAGE_NAME
-          echo "Imagem Docker gerada com sucesso."
-=======
           docker images | grep "$IMAGE_NAME"
           echo "Imagem Docker gerada com sucesso."
 
@@ -682,4 +651,3 @@ jobs:
       #     title: "Pipeline DevSecOps — Falha de Segurança"
       #     description: "Uma ou mais verificações de segurança falharam."
       #     color: 0xff0000
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b

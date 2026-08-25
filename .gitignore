@@ -1,10 +1,6 @@
 node_modules/
 .env
 desktop.ini
-<<<<<<< HEAD
-reports/*.json
-reports/*.html
-=======
 reports/
 venv-semgrep/
 
@@ -16,4 +12,3 @@ trivy_resultado.txt
 *.log
 .cache/
 coverage/
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b

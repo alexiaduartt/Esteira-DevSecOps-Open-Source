@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-/* global test, expect */
-test('Smoke test', () => { expect(true).toBe(true); });
-=======
 const request = require('supertest');
 const app = require('./app');
 
@@ -145,4 +141,3 @@ describe('Testes Funcionais — Conteúdo das respostas', () => {
     });
 
 });
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b

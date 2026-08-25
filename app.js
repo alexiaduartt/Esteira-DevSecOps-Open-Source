@@ -1,9 +1,4 @@
 const express = require('express');
-<<<<<<< HEAD
-const app = express();
-
-// Rota principal solicitada na PBI
-=======
 const helmet = require('helmet');
 const cors = require('cors');
 
@@ -51,15 +46,10 @@ const corsOptions = {
 app.use(helmet());
 app.use(cors(corsOptions));
 
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
 app.get('/', (req, res) => {
     res.status(200).send('Esteira DevSecOps Ativa!');
 });
 
-<<<<<<< HEAD
-// Rota /health para monitoramento e health check
-=======
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'UP',
@@ -67,8 +57,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-<<<<<<< HEAD
-=======
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
     console.error('[ERRO INTERNO]:', err.message);
@@ -79,5 +67,4 @@ app.use((err, req, res, next) => {
     });
 });
 
->>>>>>> 6798baf207ff17dba3dbdba2f8091821623e822b
 module.exports = app;
