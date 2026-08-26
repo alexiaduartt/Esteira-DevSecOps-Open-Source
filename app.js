@@ -53,7 +53,8 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'UP',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        message: 'Serviço em operação'
     });
 });
 
