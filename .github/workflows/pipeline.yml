@@ -19,6 +19,11 @@ permissions:
 # Configurações gerais da esteira.
 env:
   IMAGE_NAME: esteira-devsecops-open-source
+  APP_PORT: "3000"
+  APP_HEALTH_ENDPOINT: "/health"
+  NODE_VERSION: "20"
+  TRIVY_SEVERITY: "HIGH,CRITICAL"
+  ZAP_TARGET: "http://localhost:3000"
 
 jobs:
   checkout-node:
