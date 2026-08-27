@@ -39,9 +39,10 @@ services:
       DD_DATABASE_PORT: "5432"
       DD_DATABASE_NAME: defectdojo
       DD_DATABASE_USER: defectdojo
-      DD_DATABASE_PASSWORD: defectdojo
-      DD_SECRET_KEY: "change-me-in-production-please"
-      DD_CREDENTIAL_AES_256_KEY: "change-me-too"
+      DD_DATABASE_PASSWORD: ${DD_DATABASE_PASSWORD:-defectdojo}
+      DD_SECRET_KEY: ${DD_SECRET_KEY:-change-me-in-production-please}
+      DD_CREDENTIAL_AES_256_KEY: ${DD_CREDENTIAL_AES_256_KEY:-change-me-too}
+      DD_CELERY_BROKER_URL: "redis://redis:6379/0"
       DD_ALLOWED_HOSTS: "*"
     volumes:
       - defectdojo_media:/app/media
@@ -58,9 +59,10 @@ services:
       DD_DATABASE_PORT: "5432"
       DD_DATABASE_NAME: defectdojo
       DD_DATABASE_USER: defectdojo
-      DD_DATABASE_PASSWORD: defectdojo
-      DD_SECRET_KEY: "change-me-in-production-please"
-      DD_CREDENTIAL_AES_256_KEY: "change-me-too"
+      DD_DATABASE_PASSWORD: ${DD_DATABASE_PASSWORD:-defectdojo}
+      DD_SECRET_KEY: ${DD_SECRET_KEY:-change-me-in-production-please}
+      DD_CREDENTIAL_AES_256_KEY: ${DD_CREDENTIAL_AES_256_KEY:-change-me-too}
+      DD_CELERY_BROKER_URL: "redis://redis:6379/0"
 
   celeryworker:
     image: defectdojo/defectdojo-django:latest
@@ -74,9 +76,10 @@ services:
       DD_DATABASE_PORT: "5432"
       DD_DATABASE_NAME: defectdojo
       DD_DATABASE_USER: defectdojo
-      DD_DATABASE_PASSWORD: defectdojo
-      DD_SECRET_KEY: "change-me-in-production-please"
-      DD_CREDENTIAL_AES_256_KEY: "change-me-too"
+      DD_DATABASE_PASSWORD: ${DD_DATABASE_PASSWORD:-defectdojo}
+      DD_SECRET_KEY: ${DD_SECRET_KEY:-change-me-in-production-please}
+      DD_CREDENTIAL_AES_256_KEY: ${DD_CREDENTIAL_AES_256_KEY:-change-me-too}
+      DD_CELERY_BROKER_URL: "redis://redis:6379/0"
 
   initializer:
     image: defectdojo/defectdojo-django:latest
@@ -89,11 +92,12 @@ services:
       DD_DATABASE_PORT: "5432"
       DD_DATABASE_NAME: defectdojo
       DD_DATABASE_USER: defectdojo
-      DD_DATABASE_PASSWORD: defectdojo
-      DD_SECRET_KEY: "change-me-in-production-please"
-      DD_CREDENTIAL_AES_256_KEY: "change-me-too"
+      DD_DATABASE_PASSWORD: ${DD_DATABASE_PASSWORD:-defectdojo}
+      DD_SECRET_KEY: ${DD_SECRET_KEY:-change-me-in-production-please}
+      DD_CREDENTIAL_AES_256_KEY: ${DD_CREDENTIAL_AES_256_KEY:-change-me-too}
       DD_INITIALIZE: "true"
-      DD_ADMIN_USER: admin
+      DD_ADMIN_USER: ${DD_ADMIN_USER:-admin}
+      DD_ADMIN_PASSWORD: ${DD_ADMIN_PASSWORD:-admin@123}
       DD_ADMIN_FIRST_NAME: Admin
       DD_ADMIN_LAST_NAME: DefectDojo
 
@@ -102,7 +106,7 @@ services:
     environment:
       POSTGRES_DB: defectdojo
       POSTGRES_USER: defectdojo
-      POSTGRES_PASSWORD: defectdojo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-defectdojo}
     volumes:
       - defectdojo_postgres:/var/lib/postgresql/data
     restart: unless-stopped

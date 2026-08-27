@@ -1,14 +1,10 @@
-# FROM node:20-alpine
-FROM node:22-alpine
+FROM node:20-alpine
 WORKDIR /app
-RUN apk update && apk upgrade --no-cache && npm install -g npm@latest && npm cache clean --force
-COPY package*.json ./
-RUN npm install --omit=dev
-COPY . .
-EXPOSE 3000
-
-# PBI-11: Correção de segurança para evitar execução como root
-# Garante a conformidade com as regras de SAST e libera o build da imagem
+COPY --chown=node:node package*.json ./
+RUN apk update && apk upgrade --no-cache && \
+    npm install -g npm@10 && \
+    npm install --omit=dev
+COPY --chown=node:node . .
 USER node
-
+EXPOSE 3000
 CMD ["npm", "start"]

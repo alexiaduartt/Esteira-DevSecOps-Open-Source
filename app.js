@@ -53,8 +53,8 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'UP',
-        message: 'Aplicacao disponivel para teste dinamico',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        message: 'Serviço em operação'
     });
 });
 
@@ -67,5 +67,7 @@ app.use((err, req, res, next) => {
         message: 'Algo deu errado no processamento da sua requisicao.'
     });
 });
+
+//linha teste para blabalbalbalbla
 
 module.exports = app;
