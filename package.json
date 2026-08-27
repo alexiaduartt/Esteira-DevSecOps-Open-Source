@@ -1,7 +1,7 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "description": "Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao f[...]",
+  "description": "Este projeto propõe o desenvolvimento de uma esteira DevSecOps utilizando ferramentas open source e acessíveis. O foco é garantir que a segurança não seja tratada apenas ao final do ciclo, mas esteja presente desde o versionamento do código até a análise de vulnerabilidades e geração de relatórios.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -26,13 +26,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.3.0",
+    "eslint-plugin-jest": "^29.16.2",
     "globals": "^17.6.0",
-    "jest": "^30.4.2",
+    "jest": "^30.3.0",
     "supertest": "^7.2.2"
   },
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "helmet": "^8.2.0"
+    "express": "^4.21.2",
+    "helmet": "^8.3.0"
   }
 }

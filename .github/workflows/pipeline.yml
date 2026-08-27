@@ -3,9 +3,11 @@ name: Pipeline Base - GitHub Actions
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: [ "main", "develop" ]
+
   pull_request:
-    branches: ["main", "develop"]
+    branches: [ "main", "develop" ]
+
   workflow_dispatch:
 
 concurrency:
@@ -18,12 +20,10 @@ permissions:
 # Configurações gerais da esteira.
 env:
   IMAGE_NAME: esteira-devsecops-open-source
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   APP_PORT: "3000"
   APP_HEALTH_ENDPOINT: "/health"
   NODE_VERSION: "20"
   TRIVY_SEVERITY: "HIGH,CRITICAL"
-  SEMGREP_SEVERITY: "ERROR"
   ZAP_TARGET: "http://localhost:3000"
   SEMGREP_CONFIGS: "p/owasp-top-ten,p/nodejs,security/semgrep/rules.yaml"
   # PBI-53: Staging
@@ -308,20 +308,16 @@ jobs:
           echo "Dockerfile encontrado com sucesso."
 
       - name: Padronizar nome da imagem Docker
-        env:
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           echo "Nome da imagem: $IMAGE_NAME"
-          echo "Tag do commit: $IMAGE_TAG"
+          echo "Tag do commit: ${{ github.sha }}"
 
       - name: Construir imagem Docker
-        env:
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
             --file Dockerfile \
-            --tag "$IMAGE_NAME:$IMAGE_TAG" \
-            --tag "$IMAGE_NAME:latest" \
+            --tag $IMAGE_NAME:${{ github.sha }} \
+            --tag $IMAGE_NAME:latest \
             .
 
       - name: Validar imagem Docker gerada
