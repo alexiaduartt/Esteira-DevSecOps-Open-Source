@@ -1,11 +1,12 @@
-## PBI-22: Docker Compose para teste dinâmico (DAST/ZAP)
-## Permite subir a aplicação localmente na porta 3000 para validação
-
 services:
   app:
     build: .
-    container_name: esteira-devsecops-app
     ports:
       - "3000:3000"
-    environment:
-      - PORT=3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

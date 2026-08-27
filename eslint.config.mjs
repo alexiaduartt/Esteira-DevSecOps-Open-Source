@@ -1,34 +1,17 @@
-// import js from "@eslint/js";
-// import globals from "globals";
-// import { defineConfig } from "eslint/config";
-
-// export default defineConfig([
-//   { files: ["**/*.{js,mjs,cjs}"], plugins: { js }, extends: ["js/recommended"], languageOptions: { globals: globals.node } },
-//   { files: ["**/*.js"], languageOptions: { sourceType: "script" } },
-// ]);
-
 import js from "@eslint/js";
 import globals from "globals";
+import { defineConfig } from "eslint/config";
+import jestPlugin from "eslint-plugin-jest";
 
-export default [
+export default defineConfig([
+  { files: ["**/*.{js,mjs,cjs}"], plugins: { js }, extends: ["js/recommended"], languageOptions: { globals: globals.node } },
+  { files: ["**/*.js"], languageOptions: { sourceType: "script" } },
   {
-    files: ["**/*.{js,mjs,cjs}"],
-    languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      globals: {
-        ...globals.node,
-        ...globals.jest // Isso adiciona 'test', 'expect', 'describe', etc.
-      },
-    },
+    files: ["**/*.test.js"],
+    plugins: { jest: jestPlugin },
+    languageOptions: { globals: globals.jest },
     rules: {
-      ...js.configs.recommended.rules,
-    },
-  },
-  {
-    files: ["**/*.js"],
-    languageOptions: {
-      sourceType: "script"
+      ...jestPlugin.configs.recommended.rules
     }
-  },
-];
+  }
+]);
