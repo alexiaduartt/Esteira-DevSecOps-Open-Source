@@ -377,7 +377,6 @@ jobs:
       - name: Executar Trivy Image
         id: trivy-image
         uses: aquasecurity/trivy-action@0.35.0
-        continue-on-error: true
         with:
           image-ref: "${{ env.IMAGE_NAME }}:${{ github.sha }}"
           scan-type: "image"
@@ -386,40 +385,6 @@ jobs:
           output: "reports/trivy/trivy-image-results.json"
           severity: ${{ env.TRIVY_SEVERITY }}
           exit-code: "1"
-
-      - name: Diagnosticar resultado do Trivy
-        if: always()
-        run: |
-          echo "===== ARQUIVO DO TRIVY ====="
-
-          if [ -f reports/trivy/trivy-image-results.json ]; then
-            ls -lh reports/trivy/trivy-image-results.json
-
-            echo "===== PRIMEIRAS 200 LINHAS ====="
-            head -n 200 reports/trivy/trivy-image-results.json
-          else
-            echo "ERRO: relatório do Trivy não foi gerado."
-          fi
-
-      - name: Resumo das vulnerabilidades Trivy
-        if: always()
-        run: |
-          if [ -s reports/trivy/trivy-image-results.json ]; then
-            echo "===== RESUMO ====="
-
-            jq -r '
-              [
-                .Results[]?.Vulnerabilities[]?
-                | {
-                    id: .VulnerabilityID,
-                    pacote: .PkgName,
-                    instalada: .InstalledVersion,
-                    corrigida: (.FixedVersion // "SEM CORREÇÃO"),
-                    severidade: .Severity
-                  }
-              ] | .[]
-            ' reports/trivy/trivy-image-results.json || true
-          fi
 
       - name: Falhar se Trivy detectar vulnerabilidades
         if: steps.trivy-image.outcome == 'failure'
