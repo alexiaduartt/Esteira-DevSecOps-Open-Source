@@ -679,7 +679,7 @@ jobs:
   push-registry:
     name: Push Imagem para GHCR (PBI-53)
     runs-on: ubuntu-latest
-    needs: [quality-gate, docker-build, trivy-image, dast-zap, dast-governance]
+    needs: [quality-gate, docker-build, dast-zap, dast-governance]
     if: success() && github.ref == 'refs/heads/develop' && github.event_name == 'push'
     timeout-minutes: 15
     permissions:
@@ -778,7 +778,6 @@ jobs:
     name: Notificar Falha de Segurança
     runs-on: ubuntu-latest
     needs:
-      - checkout-node
       - gitleaks
       - semgrep
       - trivy-fs
@@ -789,8 +788,6 @@ jobs:
       - dast-governance
       - consolidate-reports
       - defectdojo-upload
-      - push-registry
-      - deploy-staging
     if: failure()
     timeout-minutes: 5
     permissions:

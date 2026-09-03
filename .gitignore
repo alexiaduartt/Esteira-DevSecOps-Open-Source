@@ -12,3 +12,4 @@ trivy_resultado.txt
 *.log
 .cache/
 coverage/
+.env.test
