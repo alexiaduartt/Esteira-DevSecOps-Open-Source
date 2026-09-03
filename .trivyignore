@@ -1,0 +1,33 @@
+# PBI-17: Ignora falha nativa do pacote picomatch embutido no npm do Node 22-alpine
+CVE-2026-33671
+CVE-2026-33672
+
+# PBI-26: Ignora falha nativa do pacote undici embutido no npm do Node
+CVE-2026-12151
+
+# Vulnerabilidades nativas do npm e dependências identificadas no scan da imagem
+CVE-2026-14257
+CVE-2026-69152
+CVE-2026-69192
+CVE-2026-13149
+CVE-2026-12143
+CVE-2026-59869
+GHSA-5p4m-2wfm-xmqj
+# PBI-26: Vulnerabilidades sem correcao upstream identificadas na analise de imagem (Trivy), reavaliacao prevista para 2026-12-31
+CVE-2026-14456
+CVE-2026-45447
+CVE-2024-21538
+CVE-2025-64756
+CVE-2026-26996
+CVE-2026-27903
+CVE-2026-27904
+CVE-2026-48815
+CVE-2026-59873
+CVE-2026-23745
+CVE-2026-23950
+CVE-2026-24842
+CVE-2026-26960
+CVE-2026-29786
+CVE-2026-31802
+CVE-2026-59874
+CVE-2026-73566

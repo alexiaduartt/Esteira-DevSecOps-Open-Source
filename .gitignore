@@ -1,5 +1,15 @@
 node_modules/
 .env
 desktop.ini
-reports/*.json
-reports/*.html
+reports/
+venv-semgrep/
+
+# Relatórios e artefatos de scans locais/CI
+*.sarif
+trivy_resultado.txt
+
+# Logs e caches
+*.log
+.cache/
+coverage/
+.env.test

@@ -1,0 +1,31 @@
+## PBI-53: Docker Compose — Ambiente de Staging
+## Utilizado pelo CD para deploy automatizado após aprovação nos quality gates.
+## Este arquivo é implantado no servidor de staging e puxado via CD.
+
+services:
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-alexiaduartt/esteira-devsecops-open-source}:staging-${DEPLOY_SHA:-latest}
+    container_name: esteira-devsecops-staging
+    ports:
+      - "${STAGING_PORT:-3001}:3000"
+    environment:
+      - NODE_ENV=staging
+      - PORT=3000
+      - ALLOWED_ORIGINS=${STAGING_ALLOWED_ORIGINS:-http://localhost:3001}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
