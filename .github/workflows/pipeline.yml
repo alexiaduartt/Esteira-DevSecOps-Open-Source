@@ -387,26 +387,38 @@ jobs:
           severity: ${{ env.TRIVY_SEVERITY }}
           exit-code: "1"
 
-      - name: Diagnosticar vulnerabilidades Trivy
+      - name: Diagnosticar resultado do Trivy
         if: always()
         run: |
-          echo "===== VULNERABILIDADES HIGH/CRITICAL ====="
+          echo "===== ARQUIVO DO TRIVY ====="
 
-          if [ -s reports/trivy/trivy-image-results.json ]; then
-            jq -r '
-              .Results[]? |
-              select(.Vulnerabilities != null) |
-              .Vulnerabilities[]? |
-              [
-                .VulnerabilityID,
-                .PkgName,
-                .InstalledVersion,
-                (.FixedVersion // "SEM CORREÇÃO"),
-                .Severity
-              ] | @tsv
-            ' reports/trivy/trivy-image-results.json
+          if [ -f reports/trivy/trivy-image-results.json ]; then
+            ls -lh reports/trivy/trivy-image-results.json
+
+            echo "===== PRIMEIRAS 200 LINHAS ====="
+            head -n 200 reports/trivy/trivy-image-results.json
           else
-            echo "Relatório Trivy não encontrado ou vazio."
+            echo "ERRO: relatório do Trivy não foi gerado."
+          fi
+
+      - name: Resumo das vulnerabilidades Trivy
+        if: always()
+        run: |
+          if [ -s reports/trivy/trivy-image-results.json ]; then
+            echo "===== RESUMO ====="
+
+            jq -r '
+              [
+                .Results[]?.Vulnerabilities[]?
+                | {
+                    id: .VulnerabilityID,
+                    pacote: .PkgName,
+                    instalada: .InstalledVersion,
+                    corrigida: (.FixedVersion // "SEM CORREÇÃO"),
+                    severidade: .Severity
+                  }
+              ] | .[]
+            ' reports/trivy/trivy-image-results.json || true
           fi
 
       - name: Falhar se Trivy detectar vulnerabilidades
