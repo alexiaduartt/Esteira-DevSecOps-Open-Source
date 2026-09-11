@@ -1,3 +1,8 @@
+title = "Gitleaks - DevSecOps"
+
+[extend]
+useDefault = true
+
 [allowlist]
 description = "Arquivos permitidos"
 paths = [
